@@ -29,21 +29,31 @@
       --font-body:    'Nunito Sans', system-ui, sans-serif;
 
       --header-h: 80px;
+      --stage-size: clamp(150px, 36vh, 220px);
+      --pad-bottom: 24px;
+      --content-reserve: 150px;   /* alto guardado para el texto y los botones */
+      --app-h: 100vh;
+    }
+    @supports (height: 100dvh) {
+      :root { --app-h: 100dvh; }
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { height: 100%; }
+
+    /* La página nunca se desplaza en vertical: todo vive dentro de la ventana */
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+      touch-action: pan-x pinch-zoom;
+    }
+    html { background: var(--midnight-2); }
 
     body {
-      min-height: 100vh;
-      background:
-        radial-gradient(circle at 50% 0%, rgba(86,52,119,0.35) 0%, transparent 55%),
-        radial-gradient(circle at 50% 100%, rgba(66,93,80,0.18) 0%, transparent 60%),
-        linear-gradient(180deg, var(--midnight) 0%, var(--midnight-2) 100%);
+      position: fixed;
+      inset: 0;
       color: var(--text-main);
       font-family: var(--font-body);
-      overflow: hidden;
-      position: relative;
       cursor: none;               /* ocultamos el cursor nativo en desktop */
     }
     /* ...pero volvemos a mostrarlo en touch */
@@ -114,7 +124,15 @@
        ============================================================ */
     .sky {
       position: fixed;
-      inset: 0;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      height: 100lvh;             /* el fondo no cambia con el teclado ni las barras del navegador */
+      background:
+        radial-gradient(circle at 50% 0%, rgba(86,52,119,0.35) 0%, transparent 55%),
+        radial-gradient(circle at 50% 100%, rgba(66,93,80,0.18) 0%, transparent 60%),
+        linear-gradient(180deg, var(--midnight) 0%, var(--midnight-2) 100%);
       pointer-events: none;
       z-index: 0;
       overflow: hidden;
@@ -122,12 +140,16 @@
 
     .sky-layer {
       position: absolute;
-      inset: -12%;
+      inset: -140px;              /* mayor que el desplazamiento máximo: nunca se ve el borde */
       transform: translate(var(--px, 0px), var(--py, 0px));
       transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
       will-change: transform;
     }
     .sky-layer svg { width: 100%; height: 100%; display: block; }
+    /* En el teléfono el fondo responde al instante a la inclinación */
+    @media (hover: none) {
+      .sky-layer { transition: none; }
+    }
 
     .sky-far   { opacity: 0.35; }
     .sky-mid   { opacity: 0.55; }
@@ -160,7 +182,7 @@
       position: absolute;
       top: 15%;
       left: 50%;
-      transform: translateX(-50%);
+      transform: translate(calc(-50% + var(--px, 0px)), var(--py, 0px));
       width: 900px;
       height: 900px;
       border-radius: 50%;
@@ -197,6 +219,7 @@
       font-size: 15px;
       letter-spacing: 4px;
       text-transform: uppercase;
+      white-space: nowrap;
       color: var(--gold);
       text-shadow: 0 0 18px rgba(215,184,120,0.25);
     }
@@ -205,6 +228,32 @@
       from { opacity: 0; transform: translate(-50%, -8px); }
       to   { opacity: 1; transform: translate(-50%, 0); }
     }
+
+    /* Ícono de Instagram */
+    .social-link {
+      position: fixed;
+      bottom: 6px;
+      left: 50%;
+      margin-left: -22px;
+      z-index: 60;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      color: var(--lavender);
+      cursor: pointer;
+      opacity: 0;
+      animation: fadeIn 1s ease 0.4s forwards;
+      transition: color 0.2s ease;
+    }
+    .social-link:hover { color: var(--gold); }
+    .social-link:focus-visible {
+      outline: 2px solid var(--gold);
+      outline-offset: -4px;
+      border-radius: 10px;
+    }
+    .social-link svg { width: 22px; height: 22px; }
 
     /* ============================================================
        CONTROLES
@@ -219,6 +268,7 @@
       opacity: 0;
       animation: fadeIn 1s ease 0.4s forwards;
     }
+    .top-controls[hidden] { display: none; }
     @keyframes fadeIn { to { opacity: 1; } }
 
     .ctrl-btn {
@@ -255,12 +305,11 @@
       z-index: 5;
       display: flex;
       gap: 3.5vw;
-      align-items: center;               /* centra verticalmente cada card */
       justify-content: center;
       width: 100%;
-      height: 100vh;                     /* ocupa toda la ventana */
-      padding: var(--header-h) 24px 24px;/* margen para el header */
-      flex-wrap: wrap;
+      height: var(--app-h);              /* ocupa toda la ventana */
+      padding: var(--header-h) 24px var(--pad-bottom);/* margen para el header */
+      overflow: hidden;
     }
 
     /* ============================================================
@@ -270,47 +319,58 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      /* El modelo tiene una posición fija: el espacio del texto queda siempre
+         reservado, así activar o desactivar no mueve nada en la página. */
+      padding-top: max(0px, calc((var(--app-h) - var(--header-h) - var(--pad-bottom)
+                   - var(--stage-size) - 10px - var(--content-reserve)) / 2));
       cursor: pointer;
       position: relative;
-      width: 200px;
-      height: 420px;
+      width: 320px;
+      pointer-events: none;               /* solo el modelo y los botones reciben clics */
       opacity: 0;
       transform: translateY(14px);
       animation: cardIn 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
     }
     .card:nth-child(1) { animation-delay: 0.55s; }
     .card:nth-child(2) { animation-delay: 0.70s; }
-    .card:nth-child(3) { animation-delay: 0.85s; }
-    .card:nth-child(4) { animation-delay: 1.00s; }
+    .card.selected { z-index: 2; }
+    .card-inactive { cursor: inherit; }
+    .card-inactive:hover .stage-content { transform: none; }
+    .card-inactive:hover .card-label { color: var(--text-soft); }
 
     @keyframes cardIn { to { opacity: 1; transform: translateY(0); } }
 
-    /* Stage: centrado en la card. Al ser flex column y con la altura fija,
-       stage queda centrado verticalmente en la card. */
     .card-stage {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -30%);   /* un poco por encima del centro */
-      width: 220px;
-      height: 220px;
+      position: relative;
+      flex: none;
+      width: var(--stage-size);
+      height: var(--stage-size);
+      pointer-events: auto;
+      transition: opacity 0.35s ease, transform 0.35s ease;
     }
 
-    .card-top {
-      position: absolute;
-      bottom: 100%;                        /* arranca desde arriba del stage hacia arriba */
-      margin-bottom: 6px;
-      left: 0;
-      right: 0;
+    /* Contenido bajo el modelo: solo aparece y desaparece, sin mover el modelo */
+    .card-content {
+      width: 100%;
+      visibility: hidden;
+      pointer-events: none;
+      transition: visibility 0s linear 0.5s;
+    }
+    .card.selected .card-content {
+      visibility: visible;
+      transition-delay: 0s;
+    }
+
+    .card-content-inner {
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 8px;
-      pointer-events: none;
     }
 
     .card-title {
-      width: 200px;
+      width: 100%;
+      margin-top: 10px;
       text-align: center;
       font-family: var(--font-heading);
       font-size: 15px;
@@ -332,7 +392,7 @@
     }
 
     .card-desc {
-      width: 200px;
+      width: 100%;
       text-align: center;
       font-size: 13px;
       line-height: 1.55;
@@ -351,11 +411,11 @@
 
     .card-actions {
       display: flex;
-      flex-direction: column;
-      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
       gap: 6px;
       pointer-events: none;
-      margin-top: 4px;
+      padding: 4px;
     }
 
     .card-btn {
@@ -371,6 +431,7 @@
       padding: 6px 14px;
       cursor: pointer;
       white-space: nowrap;
+      text-decoration: none;
       transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
       opacity: 0;
       transform: translateY(6px);
@@ -387,7 +448,6 @@
     }
     .card.selected .card-btn:nth-child(1) { transition-delay: 0.30s, 0.30s, 0s, 0s, 0s, 0s; }
     .card.selected .card-btn:nth-child(2) { transition-delay: 0.40s, 0.40s, 0s, 0s, 0s, 0s; }
-    .card.selected .card-btn:nth-child(3) { transition-delay: 0.50s, 0.50s, 0s, 0s, 0s, 0s; }
 
     .card.selected .card-btn:hover {
       background: color-mix(in srgb, var(--glow-color) 22%, transparent);
@@ -421,6 +481,17 @@
     }
     .slot.hidden { opacity: 0; pointer-events: none; }
     .slot canvas { display: block; }
+
+    /* Dibujo de reemplazo si el dispositivo no puede mostrar el modelo 3D */
+    .model-fallback {
+      display: block;
+      width: 62%;
+      height: 62%;
+      margin: 12% auto 0;
+      color: var(--text-soft);
+      transition: color 0.4s ease;
+    }
+    .card.selected .model-fallback { color: var(--glow-color); }
 
     .card-shadow {
       position: absolute;
@@ -487,10 +558,9 @@
 
     /* Label debajo del modelo */
     .card-label {
-      position: absolute;
-      top: calc(50% + 100px);              /* justo debajo del stage */
-      left: 50%;
-      transform: translateX(-50%);
+      position: relative;
+      margin-top: -6px;                    /* justo debajo de la sombra del modelo */
+      min-height: 16px;
       color: var(--text-soft);
       font-family: var(--font-body);
       font-weight: 600;
@@ -499,7 +569,7 @@
       text-transform: uppercase;
       transition: color 0.35s ease, text-shadow 0.35s ease;
       user-select: none;
-      pointer-events: none;
+      pointer-events: auto;
       z-index: 3;
       white-space: nowrap;
     }
@@ -516,7 +586,7 @@
       position: absolute;
       top: 50%;
       left: 50%;
-      transform: translate(-50%, -46%);
+      transform: translate(-50%, calc(-46% - var(--kb-shift, 0px)));
       z-index: 20;
       display: flex;
       flex-direction: column;
@@ -529,7 +599,7 @@
     .code-panel.open {
       opacity: 1;
       pointer-events: auto;
-      transform: translate(-50%, -50%);
+      transform: translate(-50%, calc(-50% - var(--kb-shift, 0px)));
     }
 
     .code-hint {
@@ -598,8 +668,148 @@
 
     .code-panel.fade-out {
       opacity: 0;
-      transform: translate(-50%, -60%) scale(0.9);
+      transform: translate(-50%, calc(-60% - var(--kb-shift, 0px))) scale(0.9);
     }
+
+    /* ============================================================
+       REPRODUCTOR DE VIDEO
+       ============================================================ */
+    .video-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(10, 16, 30, 0.92);
+      backdrop-filter: blur(6px);
+      cursor: default;                    /* el cursor propio queda detrás del modal */
+    }
+    .video-modal[hidden] { display: none; }
+
+    .video-player {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      width: min(960px, 100%);
+      background: #000;
+      border: 1px solid rgba(199,179,229,0.25);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .video-player video {
+      display: block;
+      width: 100%;
+      max-height: calc(100vh - 124px);
+      max-height: calc(100dvh - 124px);
+      min-height: 180px;
+      background: #000;
+      cursor: pointer;
+    }
+    /* Reglas separadas: un navegador descarta la regla completa si no reconoce un selector */
+    .video-player:fullscreen {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      border-radius: 0;
+    }
+    .video-player:-webkit-full-screen {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      border-radius: 0;
+    }
+    .video-player:fullscreen video {
+      flex: 1;
+      min-height: 0;
+      max-height: none;
+    }
+    .video-player:-webkit-full-screen video {
+      flex: 1;
+      min-height: 0;
+      max-height: none;
+    }
+
+    .video-btn.video-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 2;
+      background: rgba(23, 36, 61, 0.85);
+    }
+
+    .video-msg {
+      position: absolute;
+      top: 40%;
+      left: 16px;
+      right: 16px;
+      text-align: center;
+      font-size: 14px;
+      color: var(--parchment);
+    }
+    .video-msg[hidden] { display: none; }
+
+    .video-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 10px 12px 12px;
+      background: var(--midnight);
+    }
+    .video-seek {
+      width: 100%;
+      height: 20px;
+      accent-color: var(--gold);
+      cursor: pointer;
+    }
+    .video-buttons {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .video-time {
+      margin-right: auto;
+      min-width: 84px;
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      color: var(--text-soft);
+    }
+    .video-spacer { margin-left: auto; min-width: 84px; display: flex; justify-content: flex-end; }
+
+    .video-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 44px;
+      height: 44px;
+      padding: 0 8px;
+      font-family: var(--font-body);
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--parchment);
+      background: rgba(244,235,221,0.06);
+      border: 1px solid rgba(199,179,229,0.3);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    @media (max-width: 420px) {
+      .video-buttons { flex-wrap: wrap; }
+      .video-time { flex: 0 0 100%; margin-right: 0; text-align: center; }
+      .video-spacer { min-width: 0; }
+      .video-player video {
+        max-height: calc(100vh - 176px);
+        max-height: calc(100dvh - 176px);
+      }
+    }
+    .video-btn:hover { background: rgba(86,52,119,0.6); border-color: var(--gold); }
+    .video-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+    .video-btn svg { width: 20px; height: 20px; fill: currentColor; }
+    .video-btn .icon-play { display: none; }
+    .video-btn.paused .icon-play { display: block; }
+    .video-btn.paused .icon-pause { display: none; }
 
     /* ============================================================
        PARTÍCULAS
@@ -625,6 +835,7 @@
       .star-twinkle,
       .card,
       .brand-header,
+      .social-link,
       .top-controls { animation: none !important; opacity: 1 !important; transform: none !important; }
       .card.selected .card-glow { animation: none; }
       .stage-content,
@@ -636,20 +847,73 @@
     }
 
     @media (max-width: 900px) {
-      body { overflow: auto; cursor: auto; }
+      body { cursor: auto; }
       .cursor-glow, .cursor-dot { display: none; }
-      .cards-grid {
-        height: auto;
-        min-height: 100vh;
-        flex-wrap: wrap;
-        padding-top: 100px;
-        padding-bottom: 40px;
-        gap: 30px;
-      }
-      .card { width: 180px; height: 400px; }
-      .card-stage { width: 200px; height: 200px; }
-      .card-label { top: calc(50% + 90px); }
       .brand-name { font-size: 13px; letter-spacing: 3px; }
+    }
+
+    /* Pantallas bajas (teléfono en horizontal) */
+    @media (max-height: 520px) {
+      :root {
+        --header-h: 60px;
+        --stage-size: clamp(110px, 30vh, 150px);
+        --pad-bottom: 12px;
+        --content-reserve: 144px;
+      }
+      .brand-header { top: 14px; }
+      /* Con poca altura, el ícono pasa a la esquina para no tocar el contenido */
+      .social-link { left: auto; right: 8px; margin-left: 0; }
+    }
+
+    /* Teléfono: carrusel horizontal con el modelo activo al centro */
+    @media (max-width: 700px) {
+      :root {
+        --header-h: 64px;
+        --stage-size: clamp(150px, 36vh, 240px);
+        --pad-bottom: 16px;
+        --content-reserve: 184px;
+        --card-w: min(calc(100vw - 40px), 380px);
+        --side-space: calc((100vw - var(--card-w)) / 2);
+      }
+      .cards-grid {
+        justify-content: flex-start;
+        gap: 0;
+        padding: var(--header-h) 0 var(--pad-bottom) var(--side-space);
+        overflow-x: auto;
+        overflow-y: hidden;
+        overscroll-behavior-x: contain;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+      }
+      .cards-grid::-webkit-scrollbar { display: none; }
+      .cards-grid::after {               /* permite centrar también la última card */
+        content: '';
+        flex: 0 0 var(--side-space);
+      }
+      .card {
+        flex: 0 0 var(--card-w);
+        scroll-snap-align: center;
+        scroll-snap-stop: always;
+      }
+      /* Acerca la card vecina para que su modelo asome por el borde */
+      .card + .card { margin-left: calc(50vw - 5px - var(--card-w)); }
+      .card.off-center .card-stage { opacity: 0.8; transform: scale(0.88); }
+      .card.off-center .card-label { opacity: 0; }
+      /* Con una card abierta, el vecino se atenúa para no competir con el texto */
+      .cards-grid:has(.card.selected) .card.off-center .card-stage { opacity: 0.35; }
+      .card-content-inner {
+        width: min(100%, calc(100vw - 104px));
+        margin-inline: auto;
+      }
+    }
+    @media (max-width: 700px) and (max-height: 520px) {
+      :root {
+        --header-h: 52px;
+        --stage-size: clamp(110px, 30vh, 150px);
+        --pad-bottom: 12px;
+        --content-reserve: 130px;
+      }
     }
   </style>
 </head>
@@ -659,7 +923,7 @@
        FONDO PARALLAX — 3 capas
        ============================================================ -->
   <div class="sky" aria-hidden="true" id="sky">
-    <div class="sky-halo"></div>
+    <div class="sky-halo" data-depth="0.6"></div>
 
     <!-- LEJANA -->
     <div class="sky-layer sky-far" data-depth="0.35">
@@ -748,48 +1012,86 @@
   </header>
 
   <!-- CONTROLES -->
-  <div class="top-controls">
+  <div class="top-controls" hidden>
     <button class="ctrl-btn" id="cycleModelBtn">Cambiar a libros</button>
   </div>
 
   <!-- GRID -->
   <main class="cards-grid" id="cardsGrid"></main>
 
+  <!-- INSTAGRAM -->
+  <a class="social-link" id="socialLink" href="https://www.instagram.com/objetos.escondidos/" target="_blank" rel="noopener" aria-label="Instagram de Objetos Escondidos">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+      <rect x="3" y="3" width="18" height="18" rx="5"/>
+      <circle cx="12" cy="12" r="4"/>
+      <circle cx="17.3" cy="6.7" r="0.6" fill="currentColor"/>
+    </svg>
+  </a>
+
   <div class="magic-particles" id="magicParticles" aria-hidden="true"></div>
 
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
-    }
-  }
+  <!-- REPRODUCTOR DE VIDEO -->
+  <div class="video-modal" id="videoModal" role="dialog" aria-modal="true" aria-label="Video tutorial" hidden>
+    <div class="video-player" id="videoPlayer">
+      <button type="button" class="video-btn video-close" id="videoClose" aria-label="Cerrar video">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4-5.6-5.6L6.4 19 5 17.6l5.6-5.6L5 6.4z"/></svg>
+      </button>
+      <video id="videoEl" playsinline preload="metadata"></video>
+      <div class="video-msg" id="videoMsg" hidden>No se pudo cargar el video.</div>
+      <div class="video-controls">
+        <input type="range" class="video-seek" id="videoSeek" min="0" max="0" step="0.1" value="0" aria-label="Posición del video" />
+        <div class="video-buttons">
+          <span class="video-time" id="videoTime">0:00 / 0:00</span>
+          <button type="button" class="video-btn" id="videoBack" aria-label="Retroceder 10 segundos">−10</button>
+          <button type="button" class="video-btn paused" id="videoPlay" aria-label="Reproducir">
+            <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg>
+            <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h4.5v16H6zm7.5 0H18v16h-4.5z"/></svg>
+          </button>
+          <button type="button" class="video-btn" id="videoForward" aria-label="Avanzar 10 segundos">+10</button>
+          <div class="video-spacer">
+            <button type="button" class="video-btn" id="videoFullscreen" aria-label="Pantalla completa">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v2H6v4H4zm10 0h6v6h-2V6h-4zM4 14h2v4h4v2H4zm14 0h2v6h-6v-2h4z"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script nomodule>
+    document.getElementById('cardsGrid').innerHTML =
+      '<p style="margin:auto;text-align:center">Actualiza tu navegador para ver esta página.</p>';
   </script>
 
   <script type="module">
-    import * as THREE from 'three';
+    import * as THREE from './vendor/three.module.js';
 
     /* ============================================================
        DATOS DE LAS FICHAS
        ============================================================ */
-    const COMMON_BUTTONS = ['Tutorial', 'Fotos', 'Frase del día'];
+    /* La clave no se guarda en el código: solo su huella, y la ruta del video se
+       obtiene a partir de la clave. Con 4 dígitos esto oculta, pero no es seguridad real. */
+    function hashCode(str) {
+      let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+      for (let i = 0; i < str.length; i++) {
+        const c = str.charCodeAt(i);
+        h1 = Math.imul(h1 ^ c, 2654435761);
+        h2 = Math.imul(h2 ^ c, 1597334677);
+      }
+      h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+      h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+      return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16);
+    }
 
     const CARDS = [
-      { id:'hiedra',    name:'Hiedra Eterna', shape:'brilliant', color:'#66bb6a', code:'0001',
+      { id:'hiedra',    name:'Hiedra Eterna', shape:'brilliant', color:'#66bb6a', codeHash:'ae2204ccf4459',
         title:'Arma tu Hiedra Eterna',
         desc:'Un pequeño kit botánico para descubrir, crear y coleccionar. Cada pieza está pensada para armar algo tuyo.',
-        buttons: COMMON_BUTTONS },
-      { id:'trenzas',   name:'Kit Trenzas',   shape:'emerald',   color:'#C7B3E5', code:'0002',
-        title:'Un mensaje encontrado',
-        desc:'Pergamino, lavanda y una narrativa que se descubre al abrir. Un gesto para regalar o guardar.',
-        buttons: COMMON_BUTTONS },
-      { id:'sorpresa',  name:'Bolsa Sorpresa', shape:'marquise',  color:'#8f6fc4', code:'0003',
-        title:'Descubre tu próximo hallazgo',
-        desc:'Un cofre de curiosidades elegido al azar. Cada bolsa guarda señales de misterio y pequeñas gemas.',
-        buttons: COMMON_BUTTONS },
-      { id:'zodiaco',   name:'Zodiaco',        shape:'pear',      color:'#D7B878', code:'0004',
-        title:'Tu constelación personal',
-        desc:'Una pieza inspirada en tu signo, con estrellas y detalles propios. Perfecta para coleccionar.',
-        buttons: COMMON_BUTTONS },
+        buttons: [
+          { label:'Tutorial', video:true },
+          { label:'Instagram', href:'https://www.instagram.com/objetos.escondidos/' },
+        ] },
+      { id:'misterio',  name:'Próximamente', color:'#5a556b', inactive:true },
     ];
 
     /* ============================================================
@@ -920,14 +1222,15 @@
     const SHADOW_GAP_PX = 5;
 
     class ShadowManager {
-      constructor(stageEl, getObjFn, camera) {
-        this.stageEl = stageEl;
+      constructor(slotEl, getObjFn, camera) {
+        this.slotEl = slotEl;
+        this.stageEl = slotEl.closest('.card-stage');
         this.getObjFn = getObjFn;
         this.camera = camera;
       }
       update() {
         const obj = this.getObjFn();
-        if (!obj) return;
+        if (!obj || this.slotEl.classList.contains('hidden')) return;
         const box = new THREE.Box3().setFromObject(obj);
         const center = new THREE.Vector3();
         box.getCenter(center);
@@ -969,10 +1272,10 @@
       }
 
       setHovered(v) { this.isHovered = v; }
-      setSelected(v) {
+      setSelected(v, flash = true) {
         const was = this.isSelected;
         this.isSelected = v;
-        if (v && !was) this.flashTimer = this.flashDuration;
+        if (v && !was && flash) this.flashTimer = this.flashDuration;
       }
       setUnlocked(v) { this.isUnlocked = v; }
 
@@ -1031,7 +1334,7 @@
         this.scene.add(this.mesh);
 
         this.shadowMgr = new ShadowManager(
-          container.parentElement, () => this.mesh, this.camera
+          container, () => this.mesh, this.camera
         );
 
         this.animate = this.animate.bind(this);
@@ -1053,6 +1356,67 @@
         this.applyLevit(this.mesh, dt);
         this.shadowMgr.update();
 
+        this.renderer.render(this.scene, this.camera);
+      }
+    }
+
+    /* ============================================================
+       VISOR DE SIGNO DE INTERROGACIÓN (inactivo: gris, sin rotar)
+       ============================================================ */
+    class QuestionViewer extends BaseViewer {
+      constructor(container, colorHex, index) {
+        super(container, colorHex, index);
+
+        const { renderer, scene, camera } = setupBase(
+          container, [0, 0.05, 3.8], 45, [0, -0.35, 0]
+        );
+        this.renderer = renderer; this.scene = scene; this.camera = camera;
+
+        this.material = new THREE.MeshPhongMaterial({
+          color: GRAY_BASE.clone(), shininess: 60, specular: 0x555555,
+          emissive: new THREE.Color(0x000000), flatShading: true,
+        });
+
+        const R = 0.16;
+        const center = new THREE.Vector2(0, 0.52);
+        const points = [];
+        for (let a = 170; a >= -60; a -= 23) {
+          const rad = THREE.MathUtils.degToRad(a);
+          points.push(new THREE.Vector3(
+            center.x + Math.cos(rad) * 0.5, center.y + Math.sin(rad) * 0.5, 0
+          ));
+        }
+        points.push(new THREE.Vector3(0.04, -0.12, 0), new THREE.Vector3(0, -0.34, 0));
+        const curve = new THREE.CatmullRomCurve3(points);
+
+        this.group = new THREE.Group();
+        this.group.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 30, R, 6), this.material));
+        for (const p of [points[0], points[points.length - 1]]) {
+          const cap = new THREE.Mesh(new THREE.SphereGeometry(R, 6, 4), this.material);
+          cap.position.copy(p);
+          this.group.add(cap);
+        }
+        const dot = new THREE.Mesh(new THREE.IcosahedronGeometry(0.21, 0), this.material);
+        dot.position.set(0, -0.82, 0);
+        this.group.add(dot);
+
+        this.group.rotation.set(0.1, -0.42, 0);
+        this.group.position.y = -MODEL_BASE_OFFSET;
+        this.scene.add(this.group);
+
+        this.shadowMgr = new ShadowManager(
+          container, () => this.group, this.camera
+        );
+
+        this.animate = this.animate.bind(this);
+        this.renderer.setAnimationLoop(this.animate);
+      }
+
+      animate() {
+        const dt = Math.min(this.clock.getDelta(), 0.05);
+        this.applyColor(dt, this.material);
+        this.applyLevit(this.group, dt);
+        this.shadowMgr.update();
         this.renderer.render(this.scene, this.camera);
       }
     }
@@ -1124,7 +1488,7 @@
         this.openProgress = 0;
 
         this.shadowMgr = new ShadowManager(
-          container.parentElement, () => this.bookGroup, this.camera
+          container, () => this.bookGroup, this.camera
         );
 
         this.animate = this.animate.bind(this);
@@ -1302,7 +1666,7 @@
         this.openProgress = 0;
 
         this.shadowMgr = new ShadowManager(
-          container.parentElement, () => this.chestGroup, this.camera
+          container, () => this.chestGroup, this.camera
         );
 
         this.animate = this.animate.bind(this);
@@ -1414,7 +1778,7 @@
     /* ============================================================
        PARALLAX + CURSOR
        ============================================================ */
-    const skyLayers = Array.from(document.querySelectorAll('.sky-layer'));
+    const skyLayers = Array.from(document.querySelectorAll('.sky-layer, .sky-halo'));
     const cursorGlow = document.getElementById('cursorGlow');
     const cursorDot = document.getElementById('cursorDot');
 
@@ -1422,6 +1786,7 @@
     let rawX = window.innerWidth / 2;    // px para cursor
     let rawY = window.innerHeight / 2;
     let smoothX = 0, smoothY = 0;
+    let parallaxBoost = 1;               // la inclinación mueve más el fondo que el mouse
     let cursorVisible = false;
 
     function updateMouse(clientX, clientY) {
@@ -1436,7 +1801,10 @@
       }
     }
 
-    document.addEventListener('mousemove', (e) => updateMouse(e.clientX, e.clientY));
+    // Solo el mouse real: un toque en el teléfono no debe mover el fondo
+    document.addEventListener('pointermove', (e) => {
+      if (e.pointerType !== 'touch') updateMouse(e.clientX, e.clientY);
+    });
 
     document.addEventListener('mouseleave', () => {
       cursorVisible = false;
@@ -1466,8 +1834,8 @@
         smoothY += (mouseY - smoothY) * 0.12;
         skyLayers.forEach(layer => {
           const depth = parseFloat(layer.dataset.depth || '0.5');
-          const px = -smoothX * 70 * depth;   // 👈 más marcado (antes 22)
-          const py = -smoothY * 46 * depth;   // 👈 más marcado (antes 16)
+          const px = -smoothX * 70 * depth * parallaxBoost;   // 👈 más marcado (antes 22)
+          const py = -smoothY * 46 * depth * parallaxBoost;   // 👈 más marcado (antes 16)
           layer.style.setProperty('--px', `${px}px`);
           layer.style.setProperty('--py', `${py}px`);
         });
@@ -1488,6 +1856,50 @@
       requestAnimationFrame(tick);
     }
     tick();
+
+    /* Parallax por inclinación del teléfono */
+    const TILT_RANGE = 14;       // grados de inclinación para llegar al máximo
+    const TILT_BOOST = 1.6;
+    const TILT_RECENTER_MS = 25000;   // qué tan lento vuelve al centro si mantienes la inclinación
+    const clampUnit = (v) => Math.max(-1, Math.min(1, v));
+    let tiltBase = null;
+    let lastTiltTime = 0;
+
+    function handleTilt(e) {
+      if (e.beta === null || e.gamma === null) return;
+      const angle = (screen.orientation ? screen.orientation.angle : window.orientation) || 0;
+      let x = e.gamma, y = e.beta;
+      if (angle === 90) { x = e.beta; y = -e.gamma; }
+      else if (angle === 270 || angle === -90) { x = -e.beta; y = e.gamma; }
+      else if (angle === 180) { x = -e.gamma; y = -e.beta; }
+
+      if (!tiltBase) tiltBase = { x, y };
+      parallaxBoost = TILT_BOOST;
+
+      // La posición neutra sigue muy de a poco la postura de quien sostiene el teléfono
+      const now = performance.now();
+      const follow = 1 - Math.exp(-Math.min(now - lastTiltTime, 1000) / TILT_RECENTER_MS);
+      lastTiltTime = now;
+      tiltBase.x += (x - tiltBase.x) * follow;
+      tiltBase.y += (y - tiltBase.y) * follow;
+      mouseX = clampUnit((x - tiltBase.x) / TILT_RANGE);
+      mouseY = clampUnit((y - tiltBase.y) / TILT_RANGE);
+    }
+
+    if (window.DeviceOrientationEvent && !reduceMotion) {
+      window.addEventListener('deviceorientation', handleTilt);
+      window.addEventListener('orientationchange', () => { tiltBase = null; });
+
+      if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        // iPhone solo entrega el movimiento si se pide permiso después de un toque
+        const askTilt = () => {
+          DeviceOrientationEvent.requestPermission().then(() => {
+            document.removeEventListener('touchend', askTilt);
+          }).catch(() => {});
+        };
+        document.addEventListener('touchend', askTilt);
+      }
+    }
 
     /* Iluminar estrellas cercanas al clic */
     function lightStarsNear(clientX, clientY) {
@@ -1515,24 +1927,34 @@
        ============================================================ */
     const cardsGrid = document.getElementById('cardsGrid');
     const cardEntries = [];
+    const viewport = window.visualViewport;
     let globalMode = 0;
+
+    const FALLBACK_GEM = `
+      <svg class="model-fallback" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-linejoin="round" aria-hidden="true">
+        <polygon points="20,4 32,14 27,32 13,32 8,14"/>
+        <polyline points="8,14 20,18 32,14"/>
+        <line x1="20" y1="18" x2="20" y2="4"/>
+        <line x1="20" y1="18" x2="13" y2="32"/>
+        <line x1="20" y1="18" x2="27" y2="32"/>
+      </svg>`;
+    const FALLBACK_QUESTION = `
+      <svg class="model-fallback" viewBox="0 0 40 40" aria-hidden="true">
+        <text x="20" y="31" text-anchor="middle" font-size="32" font-family="Cinzel, serif" fill="currentColor">?</text>
+      </svg>`;
+
+    function eachViewer(entry, fn) {
+      [entry.mainViewer, entry.bookViewer, entry.chestViewer].forEach(v => { if (v) fn(v); });
+    }
 
     function buildCard(data, index) {
       const el = document.createElement('div');
-      el.className = 'card';
+      el.className = data.inactive ? 'card card-inactive' : 'card';
       el.dataset.id = data.id;
       el.style.setProperty('--glow-color', data.color);
       el.style.setProperty('--glow-offset', '0px');
 
       el.innerHTML = `
-        <div class="card-top">
-          <div class="card-title"></div>
-          <div class="card-desc"></div>
-          ${data.buttons && data.buttons.length ? `
-            <div class="card-actions">
-              ${data.buttons.map(l => `<button type="button" class="card-btn">${l}</button>`).join('')}
-            </div>` : ''}
-        </div>
         <div class="card-stage">
           <div class="card-shadow"></div>
           <div class="card-glow"></div>
@@ -1542,6 +1964,7 @@
             <div class="slot slot-book hidden"></div>
             <div class="slot slot-chest hidden"></div>
           </div>
+          ${data.inactive ? '' : `
           <div class="code-panel">
             <div class="code-hint">Ingresa la clave</div>
             <div class="code-boxes">
@@ -1551,15 +1974,31 @@
               <input class="code-box" type="text" inputmode="numeric" maxlength="1" aria-label="Dígito 4" />
             </div>
             <div class="code-msg">Código incorrecto</div>
-          </div>
+          </div>`}
         </div>
         <div class="card-label">${data.name}</div>
+        ${data.inactive ? '' : `
+        <div class="card-content">
+          <div class="card-content-inner">
+            <div class="card-title"></div>
+            <div class="card-desc"></div>
+            ${data.buttons && data.buttons.length ? `
+              <div class="card-actions">
+                ${data.buttons.map(b => b.href
+                  ? `<a class="card-btn" href="${b.href}" target="_blank" rel="noopener">${b.label}</a>`
+                  : `<button type="button" class="card-btn"${b.video ? ' data-video="true"' : ''}>${b.label}</button>`
+                ).join('')}
+              </div>` : ''}
+          </div>
+        </div>`}
       `;
 
       cardsGrid.appendChild(el);
 
-      el.querySelector('.card-title').textContent = data.title;
-      el.querySelector('.card-desc').textContent = data.desc;
+      if (!data.inactive) {
+        el.querySelector('.card-title').textContent = data.title;
+        el.querySelector('.card-desc').textContent = data.desc;
+      }
 
       const stageEl = el.querySelector('.card-stage');
       const gemSlot = el.querySelector('.slot-gem');
@@ -1567,12 +2006,22 @@
       const chestSlot = el.querySelector('.slot-chest');
 
       el.querySelectorAll('.card-btn').forEach(b => {
-        b.addEventListener('click', (e) => e.stopPropagation());
+        b.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (b.dataset.video) openVideo(`assets/${hashCode('video:' + entry.accessCode)}.mp4`, b);
+        });
       });
 
-      const gemViewer = new GemViewer(gemSlot, data.color, data.shape, index);
-      const bookViewer = new BookViewer(bookSlot, data.color, index);
-      const chestViewer = new ChestViewer(chestSlot, data.color, index);
+      // Sin WebGL la página sigue funcionando, con un dibujo en lugar del modelo
+      let mainViewer = null;
+      try {
+        mainViewer = data.inactive
+          ? new QuestionViewer(gemSlot, data.color, index)
+          : new GemViewer(gemSlot, data.color, data.shape, index);
+      } catch (err) {
+        gemSlot.innerHTML = data.inactive ? FALLBACK_QUESTION : FALLBACK_GEM;
+        stageEl.style.setProperty('--shadow-y', `${stageEl.clientHeight * 0.84}px`);
+      }
 
       const codePanel = el.querySelector('.code-panel');
       const codeBoxes = Array.from(el.querySelectorAll('.code-box'));
@@ -1583,7 +2032,7 @@
         descEl: el.querySelector('.card-desc'),
         titleEl: el.querySelector('.card-title'),
         labelEl: el.querySelector('.card-label'),
-        gemViewer, bookViewer, chestViewer,
+        mainViewer, bookViewer: null, chestViewer: null,
         gemSlot, bookSlot, chestSlot,
         codePanel, codeBoxes, codeMsg,
         unlocked: false,
@@ -1595,27 +2044,24 @@
       codeBoxes.forEach((box, i) => {
         box.addEventListener('input', () => {
           box.value = box.value.replace(/\D/g, '').slice(0, 1);
-          if (box.value && i < codeBoxes.length - 1) codeBoxes[i + 1].focus();
+          if (box.value && i < codeBoxes.length - 1) codeBoxes[i + 1].focus({ preventScroll: true });
           if (codeBoxes.every(b => b.value.length === 1)) validateCode(entry);
         });
         box.addEventListener('keydown', (e) => {
-          if (e.key === 'Backspace' && !box.value && i > 0) codeBoxes[i - 1].focus();
+          if (e.key === 'Backspace' && !box.value && i > 0) codeBoxes[i - 1].focus({ preventScroll: true });
           if (e.key === 'Enter') { e.preventDefault(); validateCode(entry); }
         });
       });
 
-      el.addEventListener('mouseenter', () => {
-        gemViewer.setHovered(true);
-        bookViewer.setHovered(true);
-        chestViewer.setHovered(true);
-      });
-      el.addEventListener('mouseleave', () => {
-        gemViewer.setHovered(false);
-        bookViewer.setHovered(false);
-        chestViewer.setHovered(false);
-      });
+      if (!data.inactive) {
+        el.addEventListener('mouseenter', () => eachViewer(entry, v => v.setHovered(true)));
+        el.addEventListener('mouseleave', () => eachViewer(entry, v => v.setHovered(false)));
+      }
 
       el.addEventListener('click', (e) => {
+        // En el carrusel, tocar el modelo del costado solo lo trae al centro
+        if (carouselQuery.matches && entry !== centeredEntry) { scrollToCard(entry); return; }
+        if (data.inactive) return;
         if (codePanel.contains(e.target)) return;
         if (e.target.closest('.card-btn')) return;
         if (entry.expectingCode) return;
@@ -1631,39 +2077,70 @@
         if (e !== entry && e.expectingCode) closeCodePanel(e);
       });
       entry.expectingCode = true;
+      entry.viewportBaseline = viewport ? viewport.height : 0;
       entry.codeBoxes.forEach(b => { b.value = ''; b.classList.remove('error'); });
       entry.codeMsg.classList.remove('show');
       entry.codePanel.classList.remove('fade-out');
       entry.codePanel.classList.add('open');
-      setTimeout(() => entry.codeBoxes[0].focus(), 80);
+      entry.codeBoxes[0].focus({ preventScroll: true });
+      keepCodePanelVisible();
     }
 
     function closeCodePanel(entry) {
       entry.expectingCode = false;
       entry.codePanel.classList.remove('open', 'shake', 'fade-out');
-      entry.codeBoxes.forEach(b => b.classList.remove('error'));
+      entry.codePanel.style.removeProperty('--kb-shift');
+      entry.codeBoxes.forEach(b => { b.classList.remove('error'); b.blur(); });
       entry.codeMsg.classList.remove('show');
+      window.scrollTo(0, 0);
+    }
+
+    /* Si el teclado tapa la clave, solo sube el panel: la página no se mueve */
+    function keepCodePanelVisible() {
+      const entry = cardEntries.find(e => e.expectingCode);
+      if (!entry || !viewport || entry.codePanel.classList.contains('fade-out')) return;
+      const stage = entry.stageEl.getBoundingClientRect();
+      const bottom = stage.top + stage.height / 2 + entry.codePanel.offsetHeight / 2;
+      const shift = Math.max(0, bottom + 16 - (viewport.offsetTop + viewport.height));
+      entry.codePanel.style.setProperty('--kb-shift', `${shift}px`);
+    }
+    if (viewport) viewport.addEventListener('resize', keepCodePanelVisible);
+
+    /* Espera a que el teclado termine de cerrarse (o a que pase el tiempo máximo) */
+    function whenKeyboardClosed(baseline, minMs = 380, maxMs = 1000) {
+      return new Promise((resolve) => {
+        const start = performance.now();
+        const check = () => {
+          const elapsed = performance.now() - start;
+          const closed = !viewport || viewport.height >= baseline - 40;
+          if (elapsed >= maxMs || (elapsed >= minMs && closed)) resolve();
+          else requestAnimationFrame(check);
+        };
+        check();
+      });
     }
 
     function validateCode(entry) {
       const value = entry.codeBoxes.map(b => b.value).join('');
-      if (value === entry.data.code) {
+      if (hashCode('objetos:' + value) === entry.data.codeHash) {
+        entry.accessCode = value;
+        // Primero se va el teclado; la animación parte con la página completa a la vista
+        entry.codeBoxes.forEach(b => b.blur());
         entry.codePanel.classList.add('fade-out');
-        setTimeout(() => {
+        whenKeyboardClosed(entry.viewportBaseline).then(() => {
+          const stillOpen = entry.expectingCode;  // pudo cerrarse al deslizar o tocar fuera
           closeCodePanel(entry);
           entry.unlocked = true;
-          entry.gemViewer.setUnlocked(true);
-          entry.bookViewer.setUnlocked(true);
-          entry.chestViewer.setUnlocked(true);
-          toggleSelect(entry);
-        }, 380);
+          eachViewer(entry, v => v.setUnlocked(true));
+          if (stillOpen) toggleSelect(entry);
+        });
       } else {
         entry.codePanel.classList.remove('shake');
         void entry.codePanel.offsetWidth;
         entry.codePanel.classList.add('shake');
         entry.codeBoxes.forEach(b => { b.classList.add('error'); b.value = ''; });
         entry.codeMsg.classList.add('show');
-        entry.codeBoxes[0].focus();
+        entry.codeBoxes[0].focus({ preventScroll: true });
         setTimeout(() => {
           entry.codeBoxes.forEach(b => b.classList.remove('error'));
           entry.codeMsg.classList.remove('show');
@@ -1679,30 +2156,25 @@
       });
     });
 
+    function deselect(entry) {
+      entry.el.classList.remove('selected');
+      eachViewer(entry, v => v.setSelected(false));
+    }
+
     function toggleSelect(entry) {
       const wasSelected = entry.el.classList.contains('selected');
 
       if (wasSelected) {
-        entry.el.classList.remove('selected');
-        entry.gemViewer.setSelected(false);
-        entry.bookViewer.setSelected(false);
-        entry.chestViewer.setSelected(false);
+        deselect(entry);
         return;
       }
 
       cardEntries.forEach(e => {
-        if (e !== entry && e.el.classList.contains('selected')) {
-          e.el.classList.remove('selected');
-          e.gemViewer.setSelected(false);
-          e.bookViewer.setSelected(false);
-          e.chestViewer.setSelected(false);
-        }
+        if (e !== entry && e.el.classList.contains('selected')) deselect(e);
       });
 
       entry.el.classList.add('selected');
-      entry.gemViewer.setSelected(true);
-      entry.bookViewer.setSelected(true);
-      entry.chestViewer.setSelected(true);
+      eachViewer(entry, v => v.setSelected(true));
 
       entry.el.classList.remove('flash');
       void entry.el.offsetWidth;
@@ -1713,7 +2185,179 @@
     }
 
     /* ============================================================
+       CARRUSEL MÓVIL
+       ============================================================ */
+    const carouselQuery = window.matchMedia('(max-width: 700px)');
+    let centeredEntry = null;
+
+    function scrollToCard(entry) {
+      cardsGrid.scrollTo({
+        left: entry.el.offsetLeft + entry.el.offsetWidth / 2 - cardsGrid.clientWidth / 2,
+        behavior: reduceMotion ? 'auto' : 'smooth',
+      });
+    }
+
+    function syncCarousel() {
+      if (!carouselQuery.matches) {
+        centeredEntry = null;
+        cardEntries.forEach(e => {
+          e.el.classList.remove('off-center');
+          e.restoreOnReturn = false;
+        });
+        return;
+      }
+      const middle = cardsGrid.scrollLeft + cardsGrid.clientWidth / 2;
+      const distance = (e) => Math.abs(e.el.offsetLeft + e.el.offsetWidth / 2 - middle);
+      const nearest = cardEntries.reduce((a, b) => (distance(b) < distance(a) ? b : a));
+      if (nearest === centeredEntry) return;
+
+      // Al deslizar, la card que queda al costado se cierra, pero recuerda si estaba abierta
+      if (centeredEntry) {
+        centeredEntry.restoreOnReturn = centeredEntry.el.classList.contains('selected');
+        deselect(centeredEntry);
+        if (centeredEntry.expectingCode) closeCodePanel(centeredEntry);
+        eachViewer(centeredEntry, v => v.setHovered(false));
+      }
+      centeredEntry = nearest;
+      cardEntries.forEach(e => e.el.classList.toggle('off-center', e !== nearest));
+
+      // Al volver se muestra tal como quedó, sin repetir el destello ni las partículas
+      if (nearest.restoreOnReturn) {
+        nearest.restoreOnReturn = false;
+        nearest.el.classList.add('selected');
+        eachViewer(nearest, v => v.setSelected(true, false));
+      }
+    }
+
+    cardsGrid.addEventListener('scroll', () => {
+      if (cardsGrid.scrollTop) cardsGrid.scrollTop = 0;   // el carrusel solo se mueve en horizontal
+      syncCarousel();
+    }, { passive: true });
+    carouselQuery.addEventListener('change', syncCarousel);
+
+    /* ============================================================
+       REPRODUCTOR DE VIDEO
+       ============================================================ */
+    const SKIP_SECONDS = 10;
+    const videoModal = document.getElementById('videoModal');
+    const videoPlayer = document.getElementById('videoPlayer');
+    const videoEl = document.getElementById('videoEl');
+    const videoMsg = document.getElementById('videoMsg');
+    const videoSeek = document.getElementById('videoSeek');
+    const videoTime = document.getElementById('videoTime');
+    const videoPlayBtn = document.getElementById('videoPlay');
+    const videoCloseBtn = document.getElementById('videoClose');
+    const socialLink = document.getElementById('socialLink');
+    let videoOpener = null;
+
+    const formatTime = (s) => {
+      const total = Math.floor(s || 0);
+      return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+    };
+    const fullscreenElement = () => document.fullscreenElement || document.webkitFullscreenElement;
+
+    function updateVideoProgress() {
+      videoSeek.value = videoEl.currentTime;
+      videoTime.textContent = `${formatTime(videoEl.currentTime)} / ${formatTime(videoEl.duration)}`;
+    }
+
+    // Los modelos 3D no necesitan dibujarse detrás del video
+    function setViewersRunning(running) {
+      cardEntries.forEach(e => eachViewer(e, v => {
+        v.renderer.setAnimationLoop(running ? v.animate : null);
+      }));
+    }
+
+    function openVideo(src, opener) {
+      videoOpener = opener;
+      videoMsg.hidden = true;
+      videoEl.src = src;
+      videoSeek.max = 0;
+      updateVideoProgress();
+      videoModal.hidden = false;
+      cardsGrid.inert = true;
+      socialLink.inert = true;
+      setViewersRunning(false);
+      videoCloseBtn.focus();
+      videoEl.play().catch(() => {});     // si el navegador lo impide, queda el botón de reproducir
+    }
+
+    function closeVideo() {
+      if (fullscreenElement()) toggleVideoFullscreen();
+      videoEl.pause();
+      videoEl.removeAttribute('src');
+      videoEl.load();
+      videoModal.hidden = true;
+      cardsGrid.inert = false;
+      socialLink.inert = false;
+      setViewersRunning(true);
+      if (videoOpener) videoOpener.focus();
+    }
+
+    function toggleVideoPlay() {
+      if (videoEl.paused) videoEl.play().catch(() => {});
+      else videoEl.pause();
+    }
+
+    function skipVideo(seconds) {
+      const end = videoEl.duration || 0;
+      videoEl.currentTime = Math.max(0, Math.min(end, videoEl.currentTime + seconds));
+    }
+
+    function toggleVideoFullscreen() {
+      if (fullscreenElement()) {
+        (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      } else if (videoPlayer.requestFullscreen) {
+        videoPlayer.requestFullscreen();
+      } else if (videoPlayer.webkitRequestFullscreen) {
+        videoPlayer.webkitRequestFullscreen();
+      } else if (videoEl.webkitEnterFullscreen) {
+        videoEl.webkitEnterFullscreen();  // iPhone solo permite pantalla completa nativa
+      }
+    }
+
+    // Salir de pantalla completa le quita el foco al botón que abrió el video
+    document.addEventListener('fullscreenchange', () => {
+      if (videoModal.hidden && videoOpener) videoOpener.focus();
+    });
+
+    videoEl.addEventListener('loadedmetadata', () => {
+      videoSeek.max = videoEl.duration;
+      updateVideoProgress();
+    });
+    videoEl.addEventListener('timeupdate', updateVideoProgress);
+    videoEl.addEventListener('click', toggleVideoPlay);
+    videoEl.addEventListener('error', () => {
+      if (videoEl.getAttribute('src')) videoMsg.hidden = false;
+    });
+    videoEl.addEventListener('play', () => {
+      videoPlayBtn.classList.remove('paused');
+      videoPlayBtn.setAttribute('aria-label', 'Pausar');
+    });
+    videoEl.addEventListener('pause', () => {
+      videoPlayBtn.classList.add('paused');
+      videoPlayBtn.setAttribute('aria-label', 'Reproducir');
+    });
+
+    videoSeek.addEventListener('input', () => { videoEl.currentTime = videoSeek.value; });
+    videoPlayBtn.addEventListener('click', toggleVideoPlay);
+    document.getElementById('videoBack').addEventListener('click', () => skipVideo(-SKIP_SECONDS));
+    document.getElementById('videoForward').addEventListener('click', () => skipVideo(SKIP_SECONDS));
+    document.getElementById('videoFullscreen').addEventListener('click', toggleVideoFullscreen);
+    videoCloseBtn.addEventListener('click', closeVideo);
+    videoModal.addEventListener('click', (e) => { if (e.target === videoModal) closeVideo(); });
+
+    document.addEventListener('keydown', (e) => {
+      if (videoModal.hidden) return;
+      if (e.key === 'Escape') closeVideo();
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); skipVideo(-SKIP_SECONDS); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); skipVideo(SKIP_SECONDS); }
+      else if (e.key === ' ' && e.target.tagName !== 'BUTTON') { e.preventDefault(); toggleVideoPlay(); }
+    });
+
+    /* ============================================================
        CICLO DE MODELO
+       (el botón está oculto; quita `hidden` de .top-controls para volver a usarlo)
        ============================================================ */
     const cycleBtn = document.getElementById('cycleModelBtn');
     const labelsByMode = ['Cambiar a libros', 'Cambiar a cofres', 'Cambiar a gemas'];
@@ -1722,12 +2366,8 @@
     cycleBtn.addEventListener('click', () => {
       globalMode = (globalMode + 1) % 3;
       cardEntries.forEach(e => {
-        if (e.el.classList.contains('selected')) {
-          e.el.classList.remove('selected');
-          e.gemViewer.setSelected(false);
-          e.bookViewer.setSelected(false);
-          e.chestViewer.setSelected(false);
-        }
+        if (e.data.inactive) return;     // el signo ? no cambia de modelo
+        if (e.el.classList.contains('selected')) deselect(e);
         e.gemSlot.classList.add('hidden');
         e.bookSlot.classList.add('hidden');
         e.chestSlot.classList.add('hidden');
@@ -1737,9 +2377,18 @@
           e.gemSlot.classList.remove('hidden');
           e.labelEl.textContent = e.originalLabel;
         } else if (globalMode === 1) {
+          // Libro y cofre se crean solo si se piden, para no gastar WebGL en el teléfono
+          if (!e.bookViewer) {
+            e.bookViewer = new BookViewer(e.bookSlot, e.data.color, idx - 1);
+            e.bookViewer.setUnlocked(e.unlocked);
+          }
           e.bookSlot.classList.remove('hidden');
           e.labelEl.textContent = 'Libro ' + idx;
         } else {
+          if (!e.chestViewer) {
+            e.chestViewer = new ChestViewer(e.chestSlot, e.data.color, idx - 1);
+            e.chestViewer.setUnlocked(e.unlocked);
+          }
           e.chestSlot.classList.remove('hidden');
           e.labelEl.textContent = 'Cofre ' + idx;
         }
@@ -1748,13 +2397,14 @@
     });
 
     CARDS.forEach((c, i) => buildCard(c, i));
+    syncCarousel();
 
     window.addEventListener('resize', () => {
       cardEntries.forEach(entry => {
         const stage = entry.stageEl;
         const w = stage.clientWidth;
         const h = stage.clientHeight;
-        [entry.gemViewer, entry.bookViewer, entry.chestViewer].forEach(v => {
+        eachViewer(entry, v => {
           v.renderer.setSize(w, h);
           v.camera.aspect = w / h;
           v.camera.updateProjectionMatrix();
