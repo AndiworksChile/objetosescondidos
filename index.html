@@ -553,7 +553,7 @@
     @keyframes flashBurst {
       0%   { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
       25%  { opacity: 0.95; }
-      100% { transform: translate(-50%, -50%) scale(4); opacity: 0; }
+      100% { transform: translate(-50%, -50%) scale(7); opacity: 0; }
     }
 
     /* Label debajo del modelo */
@@ -816,17 +816,13 @@
        ============================================================ */
     .magic-particles {
       position: fixed;
-      inset: 0;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
       pointer-events: none;
       z-index: 45;
-      overflow: hidden;
     }
-    .particle, .sparkle {
-      position: absolute;
-      pointer-events: none;
-      will-change: transform, opacity;
-    }
-    .particle { border-radius: 50%; }
 
     /* ============================================================
        ACCESIBILIDAD
@@ -1028,7 +1024,7 @@
     </svg>
   </a>
 
-  <div class="magic-particles" id="magicParticles" aria-hidden="true"></div>
+  <canvas class="magic-particles" id="magicParticles" aria-hidden="true"></canvas>
 
   <!-- REPRODUCTOR DE VIDEO -->
   <div class="video-modal" id="videoModal" role="dialog" aria-modal="true" aria-label="Video tutorial" hidden>
@@ -1347,6 +1343,11 @@
         const active = this.isSelected;
 
         this.applyColor(dt, this.material);
+
+        // Golpe de la explosión: la gema se infla un instante y vuelve a su tamaño
+        const burst = 1 - this.flashTimer / this.flashDuration;
+        const pop = reduceMotion || burst >= 0.45 ? 0 : Math.sin((burst / 0.45) * Math.PI) * 0.22;
+        this.mesh.scale.setScalar(1 + pop);
 
         const targetSpeed = awake ? (active ? 1.6 : 1.0) : (this.isUnlocked ? 0.3 : 0);
         this.currentRotationSpeed += (targetSpeed - this.currentRotationSpeed) * Math.min(1, dt * 5);
@@ -1718,61 +1719,181 @@
        ============================================================ */
     const PARTICLE_PALETTE = ['#D7B878', '#C7B3E5', '#ffffff'];
 
+    const particlesCanvas = document.getElementById('magicParticles');
+    const particlesCtx = particlesCanvas.getContext('2d');
+    const spriteCache = {};
+    let burstItems = [];
+    let burstRunning = false;
+    let burstLastTime = 0;
+
+    // Brillos dibujados una sola vez por color: después solo se copian, muy rápido en el teléfono
+    function getSprite(kind, color) {
+      const key = kind + color;
+      if (spriteCache[key]) return spriteCache[key];
+      const S = 64, c = S / 2;
+      const sprite = document.createElement('canvas');
+      sprite.width = sprite.height = S;
+      const g = sprite.getContext('2d');
+      if (kind === 'glow') {
+        const grad = g.createRadialGradient(c, c, 0, c, c, c);
+        grad.addColorStop(0, '#ffffff');
+        grad.addColorStop(0.25, color);
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        g.fillStyle = grad;
+        g.fillRect(0, 0, S, S);
+      } else {
+        g.shadowColor = color;
+        g.shadowBlur = 10;
+        g.fillStyle = color;
+        g.beginPath();
+        for (let i = 0; i < 8; i++) {
+          const r = i % 2 === 0 ? c * 0.8 : c * 0.12;
+          const a = (i / 8) * Math.PI * 2;
+          g.lineTo(c + Math.cos(a) * r, c + Math.sin(a) * r);
+        }
+        g.closePath();
+        g.fill();
+        g.fillStyle = '#ffffff';
+        g.beginPath();
+        g.arc(c, c, c * 0.1, 0, Math.PI * 2);
+        g.fill();
+      }
+      spriteCache[key] = sprite;
+      return sprite;
+    }
+
+    function drawSprite(sprite, x, y, size, alpha, rotation = 0) {
+      particlesCtx.globalAlpha = alpha;
+      if (rotation) {
+        particlesCtx.save();
+        particlesCtx.translate(x, y);
+        particlesCtx.rotate(rotation);
+        particlesCtx.drawImage(sprite, -size / 2, -size / 2, size, size);
+        particlesCtx.restore();
+      } else {
+        particlesCtx.drawImage(sprite, x - size / 2, y - size / 2, size, size);
+      }
+    }
+
+    function stepBurst(now) {
+      const dt = Math.min((now - burstLastTime) / 1000, 0.1);
+      burstLastTime = now;
+      const ctx = particlesCtx;
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.lineCap = 'round';
+
+      burstItems = burstItems.filter(p => (p.age += dt) < p.life);
+      burstItems.forEach(p => {
+        if (p.age < 0) return;
+        const t = p.age / p.life;
+
+        if (p.kind === 'flash') {
+          drawSprite(p.sprite, p.x, p.y, p.size * (0.35 + 0.65 * (1 - Math.pow(1 - t, 3))), Math.pow(1 - t, 2));
+          return;
+        }
+        if (p.kind === 'ring') {
+          const r = p.size * (1 - Math.exp(-5 * p.age));
+          const fade = Math.pow(1 - t, 2);
+          const width = 1 + 4 * (1 - t);
+          ctx.strokeStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+          ctx.globalAlpha = fade * 0.14;     // halo ancho y suave
+          ctx.lineWidth = width * 6;
+          ctx.stroke();
+          ctx.globalAlpha = fade * 0.3;
+          ctx.lineWidth = width * 2.5;
+          ctx.stroke();
+          ctx.globalAlpha = fade * 0.75;     // filo brillante
+          ctx.lineWidth = width;
+          ctx.stroke();
+          return;
+        }
+
+        const damp = Math.exp(-p.drag * dt);
+        p.vx *= damp;
+        p.vy = p.vy * damp + p.gravity * dt;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+
+        let alpha = 1 - t;
+        if (p.twinkle) alpha *= 0.55 + 0.45 * Math.sin(p.age * p.twinkle + p.phase);
+
+        if (p.kind === 'spark') {          // chispa veloz con estela
+          ctx.globalAlpha = alpha;
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = p.size * 0.16;
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p.x - p.vx * 0.045, p.y - p.vy * 0.045);
+          ctx.stroke();
+        }
+        p.rot += p.spin * dt;
+        drawSprite(p.sprite, p.x, p.y, p.size, alpha, p.rot);
+      });
+
+      ctx.globalAlpha = 1;
+      if (burstItems.length) {
+        requestAnimationFrame(stepBurst);
+      } else {
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        burstRunning = false;
+      }
+    }
+
     function emitMagicParticles(originEl, colorHex) {
       if (reduceMotion) return;
       const rect = originEl.getBoundingClientRect();
       const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height * 0.45;
-      const particlesRoot = document.getElementById('magicParticles');
+      const cy = rect.top + rect.height * 0.5;
       const palette = [colorHex, ...PARTICLE_PALETTE];
+      const pick = () => palette[Math.floor(Math.random() * palette.length)];
+      const rand = (min, max) => min + Math.random() * (max - min);
 
-      function spawn(className, sizeMin, sizeMax, vyBase, isSparkle, idx) {
-        const el = document.createElement('div');
-        el.className = className;
-        const size = sizeMin + Math.random() * (sizeMax - sizeMin);
-        el.style.width = size + 'px';
-        el.style.height = size + 'px';
-        el.style.left = (cx + (Math.random() - 0.5) * (isSparkle ? 70 : 40)) + 'px';
-        el.style.top  = (cy + (Math.random() - 0.5) * (isSparkle ? 50 : 30)) + 'px';
+      const w = window.innerWidth, h = window.innerHeight;
+      const small = Math.min(w, h) < 600;
+      const reach = small ? 0.75 : 1;      // en el teléfono cubre la pantalla sin salirse tanto
+      const amount = small ? 0.75 : 1;
 
-        const color = palette[Math.floor(Math.random() * palette.length)];
-
-        if (isSparkle) {
-          el.innerHTML = `<svg viewBox="0 0 24 24" width="${size}" height="${size}">
-            <path d="M12 2 L13.5 10.5 L22 12 L13.5 13.5 L12 22 L10.5 13.5 L2 12 L10.5 10.5 Z"
-              fill="${color}" opacity="1"/></svg>`;
-        } else {
-          el.style.background = color;
-          el.style.boxShadow = `0 0 ${6 + Math.random() * 8}px ${color}`;
-          el.style.borderRadius = '50%';
-        }
-        particlesRoot.appendChild(el);
-
-        const vx = (Math.random() - 0.5) * (isSparkle ? 120 : 180);
-        const vy = -vyBase - Math.random() * (isSparkle ? 90 : 140);
-        const gravity = isSparkle ? 320 : 380;
-        const life = 0.8 + Math.random() * 0.6;
-        const t0 = performance.now();
-        const startX = parseFloat(el.style.left);
-        const startY = parseFloat(el.style.top);
-
-        function step(now) {
-          const t = (now - t0) / 1000;
-          if (t > life) { el.remove(); return; }
-          const x = startX + vx * t;
-          const y = startY + vy * t + 0.5 * gravity * t * t;
-          const opacity = 1 - (t / life);
-          const rot = isSparkle ? t * 240 * (idx % 2 === 0 ? 1 : -1) : 0;
-          const scale = isSparkle ? 1 : 1 + t * 0.6;
-          el.style.transform = `translate(${x - startX}px, ${y - startY}px) rotate(${rot}deg) scale(${scale})`;
-          el.style.opacity = opacity;
-          requestAnimationFrame(step);
-        }
-        requestAnimationFrame(step);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      if (particlesCanvas.width !== Math.round(w * dpr) || particlesCanvas.height !== Math.round(h * dpr)) {
+        particlesCanvas.width = Math.round(w * dpr);
+        particlesCanvas.height = Math.round(h * dpr);
       }
+      particlesCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      for (let i = 0; i < 22; i++) spawn('particle', 3, 9, 80, false, i);
-      for (let i = 0; i < 8; i++) spawn('sparkle', 10, 20, 30, true, i);
+      // Fogonazo central y ondas expansivas
+      burstItems.push({ kind:'flash', x:cx, y:cy, age:0, life:0.5,
+        size: Math.min(Math.min(w, h) * 1.1, 760), sprite:getSprite('glow', colorHex) });
+      [[0, colorHex], [0.08, '#ffffff'], [0.18, '#D7B878']].forEach(([delay, color]) => {
+        burstItems.push({ kind:'ring', x:cx, y:cy, age:-delay, life:0.8,
+          size: Math.min(Math.max(w, h) * 0.6, 620), color });
+      });
+
+      const launch = (kind, count, speedMin, speedMax, drag, gravity, lifeMin, lifeMax, sizeMin, sizeMax, shape, twinkle) => {
+        for (let i = 0; i < Math.round(count * amount); i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = rand(speedMin, speedMax) * reach;
+          const color = pick();
+          burstItems.push({
+            kind, x:cx, y:cy, age:-rand(0, 0.06), life:rand(lifeMin, lifeMax),
+            vx:Math.cos(angle) * speed, vy:Math.sin(angle) * speed, drag, gravity,
+            size:rand(sizeMin, sizeMax), color, sprite:getSprite(shape, color),
+            rot:Math.random() * Math.PI, spin: shape === 'star' ? rand(-5, 5) : 0,
+            twinkle: twinkle ? rand(10, 22) : 0, phase:Math.random() * Math.PI * 2,
+          });
+        }
+      };
+      launch('spark',  90, 420, 1250, 3.4, 150, 0.55, 1.2,  8, 18, 'glow', false);
+      launch('star',   30, 180,  640, 2.6,  90, 0.9,  1.7, 14, 34, 'star', true);
+      launch('glitter', 60,  40,  340, 1.8,  55, 1.3,  2.5,  4, 11, 'glow', true);
+
+      if (!burstRunning) {
+        burstRunning = true;
+        burstLastTime = performance.now();
+        requestAnimationFrame(stepBurst);
+      }
     }
 
     /* ============================================================
