@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Objetos Perdidos · Fichas</title>
+  <title>Objetos Escondidos</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,8 +16,6 @@
     :root {
       --midnight:   #17243D;
       --midnight-2: #1e2f4d;
-      --purple:     #563477;
-      --swamp:      #425D50;
       --gold:       #D7B878;
       --lavender:   #C7B3E5;
       --parchment:  #F4EBDD;
@@ -33,9 +31,15 @@
       --pad-bottom: 24px;
       --content-reserve: 150px;   /* alto guardado para el texto y los botones */
       --app-h: 100vh;
+      --sky-h: 100vh;
+      /* Lienzo del fondo: como mínimo la capa (pantalla + 140px por lado), en proporción 3:2 */
+      --sky-art-w: max(calc(100vw + 280px), calc((var(--sky-h) + 280px) * 1.5));
     }
     @supports (height: 100dvh) {
       :root { --app-h: 100dvh; }
+    }
+    @supports (height: 100lvh) {
+      :root { --sky-h: 100lvh; }     /* el fondo no cambia con el teclado ni las barras del navegador */
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -70,18 +74,16 @@
       left: 0;
       width: 140px;
       height: 140px;
+      margin: -70px 0 0 -70px;
       border-radius: 50%;
       pointer-events: none;
       z-index: 40;
-      transform: translate(-50%, -50%);
       background: radial-gradient(circle,
         rgba(215,184,120,0.18) 0%,
         rgba(199,179,229,0.10) 35%,
         transparent 70%);
-      filter: blur(6px);
-      transition: opacity 0.35s ease, transform 0.18s ease-out, background 0.4s ease;
-      mix-blend-mode: screen;
-      will-change: transform, opacity;
+      transition: opacity 0.35s ease;
+      will-change: transform;
     }
     .cursor-glow.hidden { opacity: 0; }
     .cursor-glow.hot {
@@ -91,15 +93,6 @@
         rgba(199,179,229,0.18) 35%,
         transparent 70%);
     }
-    .cursor-glow.pulse {
-      /* feedback al hacer clic */
-      animation: cursorPulse 0.5s ease-out;
-    }
-    @keyframes cursorPulse {
-      0%   { transform: translate(-50%, -50%) scale(1); }
-      40%  { transform: translate(-50%, -50%) scale(1.6); }
-      100% { transform: translate(-50%, -50%) scale(1); }
-    }
 
     /* Punto central del cursor */
     .cursor-dot {
@@ -108,12 +101,12 @@
       left: 0;
       width: 6px;
       height: 6px;
+      margin: -3px 0 0 -3px;
       border-radius: 50%;
       background: var(--gold);
       box-shadow: 0 0 10px rgba(215,184,120,0.8);
       pointer-events: none;
       z-index: 41;
-      transform: translate(-50%, -50%);
       transition: opacity 0.35s ease;
       will-change: transform;
     }
@@ -127,8 +120,7 @@
       top: 0;
       left: 0;
       width: 100%;
-      height: 100vh;
-      height: 100lvh;             /* el fondo no cambia con el teclado ni las barras del navegador */
+      height: var(--sky-h);
       background:
         radial-gradient(circle at 50% 0%, rgba(86,52,119,0.35) 0%, transparent 55%),
         radial-gradient(circle at 50% 100%, rgba(66,93,80,0.18) 0%, transparent 60%),
@@ -141,32 +133,36 @@
     .sky-layer {
       position: absolute;
       inset: -140px;              /* mayor que el desplazamiento máximo: nunca se ve el borde */
-      transform: translate(var(--px, 0px), var(--py, 0px));
-      transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+      overflow: hidden;
       will-change: transform;
     }
-    .sky-layer svg { width: 100%; height: 100%; display: block; }
-    /* En el teléfono el fondo responde al instante a la inclinación */
-    @media (hover: none) {
-      .sky-layer { transition: none; }
-    }
-
     .sky-far   { opacity: 0.35; }
     .sky-mid   { opacity: 0.55; }
     .sky-near  { opacity: 0.78; }
 
-    /* Estrellas: ahora con transición para que se iluminen al click */
+    .sky-art {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: var(--sky-art-w);
+      height: calc(var(--sky-art-w) / 1.5);
+      margin-left: calc(var(--sky-art-w) / -2);
+      margin-top: calc(var(--sky-art-w) / -3);
+    }
+    .sky-art svg { display: block; width: 100%; height: 100%; }
+
     .star {
-      transition: filter 0.25s ease, transform 0.25s ease, opacity 0.25s ease;
-      transform-box: fill-box;
-      transform-origin: center;
+      position: absolute;
+      transform: translate(-50%, -50%);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
     }
     .star-twinkle {
+      border-radius: 50%;
       animation: twinkle 7s ease-in-out infinite;
     }
-    .star-twinkle:nth-child(2n) { animation-duration: 9s; animation-delay: -2s; }
-    .star-twinkle:nth-child(3n) { animation-duration: 11s; animation-delay: -4s; }
-    .star-twinkle:nth-child(5n) { animation-duration: 13s; animation-delay: -6s; }
+    .star-sparkle {
+      clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+    }
     @keyframes twinkle {
       0%, 100% { opacity: 0.35; }
       50%      { opacity: 0.95; }
@@ -174,15 +170,15 @@
 
     /* Estrella "iluminada" por el click */
     .star.lit {
-      filter: drop-shadow(0 0 8px #fff) drop-shadow(0 0 14px var(--gold));
-      transform: scale(1.9);
+      transform: translate(-50%, -50%) scale(1.9);
+      box-shadow: 0 0 8px #fff, 0 0 14px var(--gold);
     }
 
     .sky-halo {
       position: absolute;
       top: 15%;
       left: 50%;
-      transform: translate(calc(-50% + var(--px, 0px)), var(--py, 0px));
+      margin-left: -450px;
       width: 900px;
       height: 900px;
       border-radius: 50%;
@@ -190,8 +186,7 @@
         rgba(215,184,120,0.10) 0%,
         rgba(215,184,120,0.04) 30%,
         transparent 65%);
-      pointer-events: none;
-      filter: blur(10px);
+      will-change: transform;
     }
 
     /* ============================================================
@@ -254,48 +249,7 @@
       border-radius: 10px;
     }
     .social-link svg { width: 22px; height: 22px; }
-
-    /* ============================================================
-       CONTROLES
-       ============================================================ */
-    .top-controls {
-      position: fixed;
-      top: 24px;
-      left: 24px;
-      z-index: 100;
-      display: flex;
-      gap: 10px;
-      opacity: 0;
-      animation: fadeIn 1s ease 0.4s forwards;
-    }
-    .top-controls[hidden] { display: none; }
     @keyframes fadeIn { to { opacity: 1; } }
-
-    .ctrl-btn {
-      padding: 10px 18px;
-      font-size: 12px;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      color: var(--parchment);
-      background: rgba(86,52,119,0.35);
-      border: 1px solid rgba(199,179,229,0.35);
-      border-radius: 8px;
-      cursor: pointer;
-      backdrop-filter: blur(6px);
-      transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
-      font-family: var(--font-body);
-      font-weight: 600;
-    }
-    .ctrl-btn:hover {
-      background: rgba(86,52,119,0.6);
-      border-color: var(--gold);
-      color: #fff;
-      box-shadow: 0 0 20px rgba(215,184,120,0.2);
-    }
-    .ctrl-btn:focus-visible {
-      outline: 2px solid var(--gold);
-      outline-offset: 3px;
-    }
 
     /* ============================================================
        GRID DE CARDS — CENTRADO REAL
@@ -351,21 +305,17 @@
 
     /* Contenido bajo el modelo: solo aparece y desaparece, sin mover el modelo */
     .card-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
       width: 100%;
       visibility: hidden;
-      pointer-events: none;
       transition: visibility 0s linear 0.5s;
     }
     .card.selected .card-content {
       visibility: visible;
       transition-delay: 0s;
-    }
-
-    .card-content-inner {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
     }
 
     .card-title {
@@ -381,7 +331,6 @@
       opacity: 0;
       transform: translateY(8px);
       transition: opacity 0.5s ease, transform 0.5s ease, color 0.4s ease;
-      pointer-events: none;
       user-select: none;
     }
     .card.selected .card-title {
@@ -400,7 +349,6 @@
       opacity: 0;
       transform: translateY(8px);
       transition: opacity 0.5s ease 0.06s, transform 0.5s ease 0.06s, color 0.4s ease;
-      pointer-events: none;
       user-select: none;
     }
     .card.selected .card-desc {
@@ -414,7 +362,6 @@
       flex-wrap: wrap;
       justify-content: center;
       gap: 6px;
-      pointer-events: none;
       padding: 4px;
     }
 
@@ -476,10 +423,7 @@
     .slot {
       position: absolute;
       inset: 0;
-      opacity: 1;
-      transition: opacity 0.4s ease;
     }
-    .slot.hidden { opacity: 0; pointer-events: none; }
     .slot canvas { display: block; }
 
     /* Dibujo de reemplazo si el dispositivo no puede mostrar el modelo 3D */
@@ -514,7 +458,7 @@
       position: absolute;
       top: 0;
       left: 50%;
-      transform: translate(-50%, calc(var(--shadow-y, 190px) + var(--glow-offset, 0px))) scale(1.1);
+      transform: translate(-50%, var(--shadow-y, 190px)) scale(1.1);
       width: 100px;
       height: 18px;
       border-radius: 50%;
@@ -530,8 +474,8 @@
       animation: breathe 3.4s ease-in-out infinite;
     }
     @keyframes breathe {
-      0%, 100% { filter: blur(6px); opacity: 0.65; }
-      50%      { filter: blur(8px); opacity: 0.85; }
+      0%, 100% { opacity: 0.65; }
+      50%      { opacity: 0.85; }
     }
 
     .card-flash {
@@ -545,15 +489,7 @@
       transform: translate(-50%, -50%) scale(0);
       opacity: 0;
       pointer-events: none;
-      filter: blur(2px);
       z-index: 2;
-    }
-    .card.flash .card-flash { animation: flashBurst 0.9s ease-out forwards; }
-
-    @keyframes flashBurst {
-      0%   { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
-      25%  { opacity: 0.95; }
-      100% { transform: translate(-50%, -50%) scale(7); opacity: 0; }
     }
 
     /* Label debajo del modelo */
@@ -682,8 +618,7 @@
       align-items: center;
       justify-content: center;
       padding: 16px;
-      background: rgba(10, 16, 30, 0.92);
-      backdrop-filter: blur(6px);
+      background: rgba(10, 16, 30, 0.94);
       cursor: default;                    /* el cursor propio queda detrás del modal */
     }
     .video-modal[hidden] { display: none; }
@@ -748,7 +683,6 @@
       font-size: 14px;
       color: var(--parchment);
     }
-    .video-msg[hidden] { display: none; }
 
     .video-controls {
       display: flex;
@@ -828,15 +762,13 @@
        ACCESIBILIDAD
        ============================================================ */
     @media (prefers-reduced-motion: reduce) {
-      .star-twinkle,
       .card,
       .brand-header,
-      .social-link,
-      .top-controls { animation: none !important; opacity: 1 !important; transform: none !important; }
+      .social-link { animation: none !important; opacity: 1 !important; transform: none !important; }
+      .brand-header { transform: translateX(-50%) !important; }
+      .star-twinkle { animation: none; opacity: 0.65; }
       .card.selected .card-glow { animation: none; }
-      .stage-content,
-      .sky-layer { transition: none; }
-      .sky-layer { transform: none !important; }
+      .stage-content { transition: none; }
       .cursor-glow { display: none; }
       .cursor-dot { display: none; }
       body { cursor: auto; }
@@ -880,7 +812,6 @@
         overscroll-behavior-x: contain;
         scroll-snap-type: x mandatory;
         scrollbar-width: none;
-        -webkit-overflow-scrolling: touch;
       }
       .cards-grid::-webkit-scrollbar { display: none; }
       .cards-grid::after {               /* permite centrar también la última card */
@@ -898,10 +829,7 @@
       .card.off-center .card-label { opacity: 0; }
       /* Con una card abierta, el vecino se atenúa para no competir con el texto */
       .cards-grid:has(.card.selected) .card.off-center .card-stage { opacity: 0.35; }
-      .card-content-inner {
-        width: min(100%, calc(100vw - 104px));
-        margin-inline: auto;
-      }
+      .card-content { width: min(100%, calc(100vw - 104px)); }
     }
     @media (max-width: 700px) and (max-height: 520px) {
       :root {
@@ -916,76 +844,10 @@
 <body>
 
   <!-- ============================================================
-       FONDO PARALLAX — 3 capas
+       FONDO PARALLAX: halo + 3 capas que crea el código (SKY_LAYERS)
        ============================================================ -->
   <div class="sky" aria-hidden="true" id="sky">
     <div class="sky-halo" data-depth="0.6"></div>
-
-    <!-- LEJANA -->
-    <div class="sky-layer sky-far" data-depth="0.35">
-      <svg viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
-        <g fill="#C7B3E5">
-          <circle class="star star-twinkle" cx="80"   cy="200" r="0.9" data-clickable />
-          <circle class="star star-twinkle" cx="320"  cy="60"  r="1.0" data-clickable />
-          <circle class="star star-twinkle" cx="700"  cy="120" r="0.8" data-clickable />
-          <circle class="star star-twinkle" cx="1080" cy="180" r="1.0" data-clickable />
-          <circle class="star star-twinkle" cx="150"  cy="560" r="0.9" data-clickable />
-          <circle class="star star-twinkle" cx="520"  cy="680" r="1.1" data-clickable />
-          <circle class="star star-twinkle" cx="900"  cy="620" r="0.9" data-clickable />
-          <circle class="star star-twinkle" cx="1120" cy="700" r="1.0" data-clickable />
-          <circle class="star star-twinkle" cx="420"  cy="380" r="0.8" data-clickable />
-          <circle class="star star-twinkle" cx="820"  cy="420" r="0.9" data-clickable />
-        </g>
-        <g stroke="#D7B878" stroke-width="0.35" fill="none" opacity="0.15">
-          <polyline points="80,200 320,60 700,120"/>
-          <polyline points="520,680 900,620 1080,180"/>
-        </g>
-      </svg>
-    </div>
-
-    <!-- MEDIA -->
-    <div class="sky-layer sky-mid" data-depth="0.7">
-      <svg viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
-        <g fill="#C7B3E5">
-          <circle class="star star-twinkle" cx="220"  cy="140" r="1.3" data-clickable />
-          <circle class="star star-twinkle" cx="600"  cy="80"  r="1.2" data-clickable />
-          <circle class="star star-twinkle" cx="980"  cy="220" r="1.4" data-clickable />
-          <circle class="star star-twinkle" cx="120"  cy="420" r="1.3" data-clickable />
-          <circle class="star star-twinkle" cx="760"  cy="540" r="1.2" data-clickable />
-          <circle class="star star-twinkle" cx="1050" cy="640" r="1.3" data-clickable />
-          <circle class="star star-twinkle" cx="340"  cy="720" r="1.1" data-clickable />
-        </g>
-        <g stroke="#D7B878" stroke-width="0.5" fill="none" opacity="0.2">
-          <polyline points="220,140 600,80 980,220"/>
-          <polyline points="120,420 220,140"/>
-          <polyline points="340,720 760,540 1050,640"/>
-        </g>
-        <g fill="#D7B878" opacity="0.4">
-          <path class="star" data-clickable d="M600 300 l2.5 9 l9 2.5 l-9 2.5 l-2.5 9 l-2.5 -9 l-9 -2.5 l9 -2.5 z"/>
-          <path class="star" data-clickable d="M980 460 l2 7 l7 2 l-7 2 l-2 7 l-2 -7 l-7 -2 l7 -2 z"/>
-        </g>
-      </svg>
-    </div>
-
-    <!-- CERCANA -->
-    <div class="sky-layer sky-near" data-depth="1.1">
-      <svg viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
-        <g fill="#F4EBDD">
-          <circle class="star star-twinkle" cx="180"  cy="300" r="1.6" data-clickable />
-          <circle class="star star-twinkle" cx="860"  cy="180" r="1.7" data-clickable />
-          <circle class="star star-twinkle" cx="480"  cy="520" r="1.5" data-clickable />
-          <circle class="star star-twinkle" cx="1080" cy="420" r="1.6" data-clickable />
-          <circle class="star star-twinkle" cx="260"  cy="720" r="1.5" data-clickable />
-        </g>
-        <g stroke="#D7B878" stroke-width="0.7" fill="none" opacity="0.28">
-          <polyline points="180,300 480,520 860,180"/>
-          <polyline points="1080,420 860,180"/>
-        </g>
-        <g fill="#D7B878" opacity="0.6">
-          <path class="star" data-clickable d="M700 220 l3.5 13 l13 3.5 l-13 3.5 l-3.5 13 l-3.5 -13 l-13 -3.5 l13 -3.5 z"/>
-        </g>
-      </svg>
-    </div>
   </div>
 
   <!-- HALO DEL MOUSE -->
@@ -993,7 +855,7 @@
   <div class="cursor-dot hidden" id="cursorDot" aria-hidden="true"></div>
 
   <!-- HEADER -->
-  <header class="brand-header" aria-label="Objetos Perdidos">
+  <header class="brand-header" aria-label="Objetos Escondidos">
     <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
       <g fill="none" stroke="#D7B878" stroke-width="1.2" stroke-linejoin="round">
         <polygon points="20,4 32,14 27,32 13,32 8,14"/>
@@ -1004,13 +866,8 @@
       </g>
       <circle cx="20" cy="18" r="1.3" fill="#D7B878"/>
     </svg>
-    <span class="brand-name">Objetos Perdidos</span>
+    <span class="brand-name">Objetos Escondidos</span>
   </header>
-
-  <!-- CONTROLES -->
-  <div class="top-controls" hidden>
-    <button class="ctrl-btn" id="cycleModelBtn">Cambiar a libros</button>
-  </div>
 
   <!-- GRID -->
   <main class="cards-grid" id="cardsGrid"></main>
@@ -1024,7 +881,7 @@
     </svg>
   </a>
 
-  <canvas class="magic-particles" id="magicParticles" aria-hidden="true"></canvas>
+  <canvas class="magic-particles" id="magicParticles" aria-hidden="true" hidden></canvas>
 
   <!-- REPRODUCTOR DE VIDEO -->
   <div class="video-modal" id="videoModal" role="dialog" aria-modal="true" aria-label="Video tutorial" hidden>
@@ -1065,6 +922,8 @@
     /* ============================================================
        DATOS DE LAS FICHAS
        ============================================================ */
+    const socialLink = document.getElementById('socialLink');
+
     /* La clave no se guarda en el código: solo su huella, y la ruta del video se
        obtiene a partir de la clave. Con 4 dígitos esto oculta, pero no es seguridad real. */
     function hashCode(str) {
@@ -1080,637 +939,242 @@
     }
 
     const CARDS = [
-      { id:'hiedra',    name:'Hiedra Eterna', shape:'brilliant', color:'#66bb6a', codeHash:'ae2204ccf4459',
+      { id:'hiedra', name:'Hiedra Eterna', color:'#66bb6a', codeHash:'ae2204ccf4459',
         title:'Arma tu Hiedra Eterna',
         desc:'Un pequeño kit botánico para descubrir, crear y coleccionar. Cada pieza está pensada para armar algo tuyo.',
         buttons: [
           { label:'Tutorial', video:true },
-          { label:'Instagram', href:'https://www.instagram.com/objetos.escondidos/' },
+          { label:'Instagram', href:socialLink.href },
         ] },
-      { id:'misterio',  name:'Próximamente', color:'#5a556b', inactive:true },
+      { id:'misterio', name:'Próximamente', color:'#5a556b', inactive:true },
     ];
 
     /* ============================================================
-       GEOMETRÍA DE GEMA
+       VISORES 3D
        ============================================================ */
-    function ring(N, y, radiusFn) {
-      const arr = [];
-      for (let i = 0; i < N; i++) {
-        const a = (i / N) * Math.PI * 2;
-        const r = radiusFn(a);
-        arr.push(new THREE.Vector3(Math.cos(a) * r, y, Math.sin(a) * r));
-      }
-      return arr;
-    }
-
-    function buildFromRings(rings, tableCenter, tipCenter, N) {
-      const positions = [];
-      const push = (v) => positions.push(v.x, v.y, v.z);
-      for (let i = 0; i < N; i++) {
-        const a = rings[0][i], b = rings[0][(i + 1) % N];
-        push(tableCenter); push(b); push(a);
-      }
-      for (let r = 0; r < rings.length - 1; r++) {
-        const top = rings[r], bot = rings[r + 1];
-        for (let i = 0; i < N; i++) {
-          const i2 = (i + 1) % N;
-          const a = top[i], b = top[i2], c = bot[i], d = bot[i2];
-          push(a); push(b); push(c);
-          push(b); push(d); push(c);
-        }
-      }
-      const last = rings[rings.length - 1];
-      for (let i = 0; i < N; i++) {
-        const a = last[i], b = last[(i + 1) % N];
-        push(tipCenter); push(a); push(b);
-      }
-      const geo = new THREE.BufferGeometry();
-      geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-      geo.computeVertexNormals();
-      return geo;
-    }
-
-    const gemShapes = {
-      brilliant() {
-        const N = 8;
-        return buildFromRings([
-          ring(N, 0.55, () => 0.85),
-          ring(N, 0.05, () => 1.0),
-          ring(N, -0.55, () => 0.55),
-        ], new THREE.Vector3(0, 1.0, 0), new THREE.Vector3(0, -1.1, 0), N);
-      },
-      emerald() {
-        const N = 12;
-        const rf = (a) => {
-          const ax = 1.15, ay = 0.8, c = Math.cos(a), s = Math.sin(a);
-          return Math.min(1 / Math.max(Math.abs(c)/ax, Math.abs(s)/ay), 1.0);
-        };
-        return buildFromRings([
-          ring(N, 0.55, a => rf(a) * 0.9),
-          ring(N, 0.05, a => rf(a)),
-          ring(N, -0.55, a => rf(a) * 0.65),
-        ], new THREE.Vector3(0, 1.0, 0), new THREE.Vector3(0, -1.1, 0), N);
-      },
-      marquise() {
-        const N = 10;
-        const rf = (a) => {
-          const c = Math.cos(a), s = Math.sin(a);
-          return 1 / Math.sqrt((c/1.35)**2 + (s/0.6)**2);
-        };
-        return buildFromRings([
-          ring(N, 0.55, a => rf(a) * 0.9),
-          ring(N, 0.05, a => rf(a)),
-          ring(N, -0.55, a => rf(a) * 0.6),
-        ], new THREE.Vector3(0, 1.0, 0), new THREE.Vector3(0, -1.1, 0), N);
-      },
-      pear() {
-        const N = 10;
-        const rf = (a) => {
-          const c = Math.cos(a), s = Math.sin(a);
-          return 1 / Math.sqrt((c/0.9)**2 + (s/1.1)**2);
-        };
-        return buildFromRings([
-          ring(N, 0.5, a => rf(a) * 0.9),
-          ring(N, 0.0, a => rf(a)),
-          ring(N, -0.5, a => rf(a) * 0.6),
-        ], new THREE.Vector3(0, 1.0, 0), new THREE.Vector3(0, -1.1, 0.15), N);
-      },
-    };
-    const geometryCache = {};
-    function getGemGeometry(shape) {
-      if (!geometryCache[shape]) geometryCache[shape] = gemShapes[shape]();
-      return geometryCache[shape];
-    }
-
-    /* ============================================================
-       SETUP BASE DE THREE
-       ============================================================ */
-    const GRAY_BASE = new THREE.Color(0x5a556b);
-    const GOLD = new THREE.Color(0xD7B878);
-
-    function setupBase(container, camPos, fov, lookAt) {
-      const w = container.clientWidth;
-      const h = container.clientHeight;
-      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setSize(w, h);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      container.appendChild(renderer.domElement);
-
-      const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(fov, w / h, 0.1, 100);
-      camera.position.set(camPos[0], camPos[1], camPos[2]);
-      camera.lookAt(lookAt[0], lookAt[1], lookAt[2]);
-
-      const key = new THREE.DirectionalLight(0xfff2d8, 2.0);
-      key.position.set(3, 5, 4);
-      scene.add(key);
-      const rim = new THREE.DirectionalLight(0xb9a7dd, 1.3);
-      rim.position.set(-4, -2, -3);
-      scene.add(rim);
-      scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-
-      return { renderer, scene, camera };
-    }
-
-    /* ============================================================
-       SHADOW MANAGER
-       ============================================================ */
-    const SHADOW_GAP_PX = 5;
-
-    class ShadowManager {
-      constructor(slotEl, getObjFn, camera) {
-        this.slotEl = slotEl;
-        this.stageEl = slotEl.closest('.card-stage');
-        this.getObjFn = getObjFn;
-        this.camera = camera;
-      }
-      update() {
-        const obj = this.getObjFn();
-        if (!obj || this.slotEl.classList.contains('hidden')) return;
-        const box = new THREE.Box3().setFromObject(obj);
-        const center = new THREE.Vector3();
-        box.getCenter(center);
-        const bottomWorld = new THREE.Vector3(center.x, box.min.y, center.z);
-        const ndc = bottomWorld.clone().project(this.camera);
-        const basePxY = (1 - ndc.y) * 0.5 * this.stageEl.clientHeight;
-        this.stageEl.style.setProperty('--shadow-y', `${basePxY + SHADOW_GAP_PX}px`);
-
-        const size = box.getSize(new THREE.Vector3());
-        const scale = Math.max(0.55, Math.min(1.3, size.x / 1.3));
-        this.stageEl.style.setProperty('--shadow-scale', `${scale}`);
-      }
-    }
-
-    /* ============================================================
-       BASE VIEWER
-       ============================================================ */
-    const MODEL_BASE_OFFSET = 0.35;
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const MODEL_BASE_OFFSET = 0.35;
+    const SHADOW_GAP_PX = 5;
+    const GRAY_BASE = new THREE.Color(0x5a556b);
+    // Colores reutilizados: crear objetos en cada cuadro provoca pausas de limpieza de memoria
+    const emissiveTarget = new THREE.Color();
 
     class BaseViewer {
-      constructor(container, baseColor, index) {
-        this.container = container;
-        this.baseColor = new THREE.Color(baseColor);
-        this.currentColor = GRAY_BASE.clone();
+      constructor(container, index) {
+        this.stageEl = container.closest('.card-stage');
+        this.width = container.clientWidth;
+        this.height = container.clientHeight;
+
+        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        this.renderer.setSize(this.width, this.height);
+        container.appendChild(this.renderer.domElement);
+
+        this.scene = new THREE.Scene();
+        this.camera = new THREE.PerspectiveCamera(45, this.width / this.height, 0.1, 100);
+        this.camera.position.set(0, 0.05, 3.8);
+        this.camera.lookAt(0, -0.35, 0);
+
+        const key = new THREE.DirectionalLight(0xfff2d8, 2.0);
+        key.position.set(3, 5, 4);
+        this.scene.add(key);
+        const rim = new THREE.DirectionalLight(0xb9a7dd, 1.3);
+        rim.position.set(-4, -2, -3);
+        this.scene.add(rim);
+        this.scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+
+        this.levitAmp = reduceMotion ? 0 : 0.015 + index * 0.003;
+        this.levitSpeed = 0.9 + index * 0.15;
+        this.levitPhase = (index + 1) * 1.37 * Math.PI;
+      }
+
+      // Solo la gema reacciona; el resto de los modelos ignora estos estados
+      setHovered() {}
+      setSelected() {}
+      setUnlocked() {}
+
+      setModel(model) {
+        this.model = model;
+        model.position.y = -MODEL_BASE_OFFSET;
+        this.scene.add(model);
+        this.updateShadow();
+      }
+
+      // La sombra se calcula una vez (y al cambiar de tamaño), no en cada cuadro
+      updateShadow() {
+        this.camera.updateMatrixWorld();
+        const box = new THREE.Box3().setFromObject(this.model);
+        const bottom = new THREE.Vector3(0, box.min.y, 0).project(this.camera);
+        const y = (1 - bottom.y) * 0.5 * this.height + SHADOW_GAP_PX;
+        const scale = Math.max(0.55, Math.min(1.3, (box.max.x - box.min.x) / 1.3));
+        this.stageEl.style.setProperty('--shadow-y', `${y}px`);
+        this.stageEl.style.setProperty('--shadow-scale', `${scale}`);
+      }
+
+      resize(width, height) {
+        if (width === this.width && height === this.height) return;
+        this.width = width;
+        this.height = height;
+        this.renderer.setSize(width, height);
+        this.camera.aspect = width / height;
+        this.camera.updateProjectionMatrix();
+        this.updateShadow();
+      }
+
+      applyLevit(time) {
+        this.model.position.y = -MODEL_BASE_OFFSET
+          + Math.sin(time * this.levitSpeed + this.levitPhase) * this.levitAmp;
+      }
+
+      render() {
+        this.renderer.render(this.scene, this.camera);
+      }
+    }
+
+    /* ------------------------------------------------------------
+       Gema: se colorea al desbloquearla y gira al activarla
+       ------------------------------------------------------------ */
+    function buildGemGeometry() {
+      const SIDES = 8;
+      const ring = (y, radius) => {
+        const points = [];
+        for (let i = 0; i < SIDES; i++) {
+          const a = (i / SIDES) * Math.PI * 2;
+          points.push(new THREE.Vector3(Math.cos(a) * radius, y, Math.sin(a) * radius));
+        }
+        return points;
+      };
+      const rings = [ring(0.55, 0.85), ring(0.05, 1.0), ring(-0.55, 0.55)];
+      const top = new THREE.Vector3(0, 1.0, 0);
+      const tip = new THREE.Vector3(0, -1.1, 0);
+
+      const positions = [];
+      const triangle = (...points) => points.forEach(p => positions.push(p.x, p.y, p.z));
+      for (let i = 0; i < SIDES; i++) {
+        const next = (i + 1) % SIDES;
+        triangle(top, rings[0][next], rings[0][i]);
+        for (let r = 0; r < rings.length - 1; r++) {
+          const upper = rings[r], lower = rings[r + 1];
+          triangle(upper[i], upper[next], lower[i]);
+          triangle(upper[next], lower[next], lower[i]);
+        }
+        triangle(tip, rings[rings.length - 1][i], rings[rings.length - 1][next]);
+      }
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geometry.computeVertexNormals();
+      return geometry;
+    }
+
+    class GemViewer extends BaseViewer {
+      constructor(container, colorHex, index) {
+        super(container, index);
+        this.baseColor = new THREE.Color(colorHex);
         this.isHovered = false;
         this.isSelected = false;
         this.isUnlocked = false;
-
-        const seed = (index + 1) * 1.37;
-        this.levitAmp   = reduceMotion ? 0 : 0.015 + (index * 0.003);
-        this.levitSpeed = 0.9 + (index * 0.15);
-        this.levitPhase = seed * Math.PI;
         this.rotY = 0;
-        this.currentRotationSpeed = 0;
+        this.rotationSpeed = 0;
         this.flashTimer = 0;
         this.flashDuration = 0.9;
-        this.clock = new THREE.Clock();
+
+        this.material = new THREE.MeshPhongMaterial({
+          color: GRAY_BASE.clone(), shininess: 120, specular: 0xffffff,
+          emissive: 0x000000, flatShading: true, transparent: true, opacity: 0.9,
+        });
+        const mesh = new THREE.Mesh(buildGemGeometry(), this.material);
+        mesh.rotation.x = 0.18;
+        this.setModel(mesh);
       }
 
-      setHovered(v) { this.isHovered = v; }
-      setSelected(v, flash = true) {
-        const was = this.isSelected;
-        this.isSelected = v;
-        if (v && !was && flash) this.flashTimer = this.flashDuration;
+      setHovered(value) { this.isHovered = value; }
+      setSelected(value, flash = true) {
+        if (value && !this.isSelected && flash) this.flashTimer = this.flashDuration;
+        this.isSelected = value;
       }
-      setUnlocked(v) { this.isUnlocked = v; }
+      setUnlocked(value) { this.isUnlocked = value; }
 
-      applyColor(dt, targetMaterial, activeEmissive = 0.28, idleEmissive = 0.15) {
-        const colored = this.isUnlocked;
+      update(dt, time, isOddFrame) {
         const awake = this.isHovered || this.isSelected;
-        const targetColor = colored ? this.baseColor : GRAY_BASE;
-        this.currentColor.lerp(targetColor, Math.min(1, dt * 6));
-        targetMaterial.color.copy(this.currentColor);
+        // Bloqueada y en reposo casi no cambia: basta con dibujarla un cuadro de cada dos
+        if (!awake && !this.isUnlocked && isOddFrame) return;
+
+        this.material.color.lerp(this.isUnlocked ? this.baseColor : GRAY_BASE, Math.min(1, dt * 6));
 
         let flashBoost = 0;
         if (this.flashTimer > 0) {
           this.flashTimer = Math.max(0, this.flashTimer - dt);
-          const p = 1 - (this.flashTimer / this.flashDuration);
-          flashBoost = Math.sin(p * Math.PI) * 1.8;
+          flashBoost = Math.sin((1 - this.flashTimer / this.flashDuration) * Math.PI) * 1.8;
         }
-        const baseEm = colored
-          ? this.baseColor.clone().multiplyScalar(this.isSelected ? activeEmissive : idleEmissive)
-          : (awake ? new THREE.Color(0.05, 0.04, 0.08) : new THREE.Color(0x000000));
-        const emTarget = baseEm.clone().add(new THREE.Color(1,1,1).multiplyScalar(flashBoost));
-        targetMaterial.emissive.lerp(emTarget, Math.min(1, dt * 10));
+        if (this.isUnlocked) {
+          emissiveTarget.copy(this.baseColor).multiplyScalar(this.isSelected ? 0.28 : 0.15);
+        } else if (awake) {
+          emissiveTarget.setRGB(0.05, 0.04, 0.08);
+        } else {
+          emissiveTarget.setRGB(0, 0, 0);
+        }
+        emissiveTarget.r += flashBoost;
+        emissiveTarget.g += flashBoost;
+        emissiveTarget.b += flashBoost;
+        this.material.emissive.lerp(emissiveTarget, Math.min(1, dt * 10));
 
-        const targetOpacity = (awake || colored) ? 0.95 : 0.42;
-        targetMaterial.opacity += (targetOpacity - targetMaterial.opacity) * Math.min(1, dt * 8);
-      }
-
-      applyLevit(obj3D, dt) {
-        const t = performance.now() * 0.001;
-        const levitY = Math.sin(t * this.levitSpeed + this.levitPhase) * this.levitAmp;
-        const targetY = -MODEL_BASE_OFFSET + levitY;
-        obj3D.position.y += (targetY - obj3D.position.y) * Math.min(1, dt * 8);
-      }
-    }
-
-    /* ============================================================
-       VISOR DE GEMA
-       ============================================================ */
-    class GemViewer extends BaseViewer {
-      constructor(container, colorHex, shape, index) {
-        super(container, colorHex, index);
-
-        const { renderer, scene, camera } = setupBase(
-          container, [0, 0.05, 3.8], 45, [0, -0.35, 0]
-        );
-        this.renderer = renderer; this.scene = scene; this.camera = camera;
-
-        this.material = new THREE.MeshPhongMaterial({
-          color: GRAY_BASE.clone(), shininess: 120, specular: 0xffffff,
-          emissive: new THREE.Color(0x000000), flatShading: true,
-          transparent: true, opacity: 0.9,
-        });
-
-        this.mesh = new THREE.Mesh(getGemGeometry(shape), this.material);
-        this.mesh.rotation.x = 0.18;
-        this.mesh.position.y = -MODEL_BASE_OFFSET;
-        this.scene.add(this.mesh);
-
-        this.shadowMgr = new ShadowManager(
-          container, () => this.mesh, this.camera
-        );
-
-        this.animate = this.animate.bind(this);
-        this.renderer.setAnimationLoop(this.animate);
-      }
-
-      animate() {
-        const dt = Math.min(this.clock.getDelta(), 0.05);
-        const awake = this.isHovered || this.isSelected;
-        const active = this.isSelected;
-
-        this.applyColor(dt, this.material);
+        const targetOpacity = awake || this.isUnlocked ? 0.95 : 0.42;
+        this.material.opacity += (targetOpacity - this.material.opacity) * Math.min(1, dt * 8);
 
         // Golpe de la explosión: la gema se infla un instante y vuelve a su tamaño
         const burst = 1 - this.flashTimer / this.flashDuration;
         const pop = reduceMotion || burst >= 0.45 ? 0 : Math.sin((burst / 0.45) * Math.PI) * 0.22;
-        this.mesh.scale.setScalar(1 + pop);
+        this.model.scale.setScalar(1 + pop);
 
-        const targetSpeed = awake ? (active ? 1.6 : 1.0) : (this.isUnlocked ? 0.3 : 0);
-        this.currentRotationSpeed += (targetSpeed - this.currentRotationSpeed) * Math.min(1, dt * 5);
-        this.rotY += this.currentRotationSpeed * dt;
-        this.mesh.rotation.y = this.rotY;
+        const targetSpeed = awake ? (this.isSelected ? 1.6 : 1.0) : (this.isUnlocked ? 0.3 : 0);
+        this.rotationSpeed += (targetSpeed - this.rotationSpeed) * Math.min(1, dt * 5);
+        this.rotY += this.rotationSpeed * dt;
+        this.model.rotation.y = this.rotY;
 
-        this.applyLevit(this.mesh, dt);
-        this.shadowMgr.update();
-
-        this.renderer.render(this.scene, this.camera);
+        this.applyLevit(time);
+        this.render();
       }
     }
 
-    /* ============================================================
-       VISOR DE SIGNO DE INTERROGACIÓN (inactivo: gris, sin rotar)
-       ============================================================ */
+    /* ------------------------------------------------------------
+       Signo de interrogación: inactivo, gris y sin rotar
+       ------------------------------------------------------------ */
     class QuestionViewer extends BaseViewer {
-      constructor(container, colorHex, index) {
-        super(container, colorHex, index);
+      constructor(container, index) {
+        super(container, index);
 
-        const { renderer, scene, camera } = setupBase(
-          container, [0, 0.05, 3.8], 45, [0, -0.35, 0]
-        );
-        this.renderer = renderer; this.scene = scene; this.camera = camera;
-
-        this.material = new THREE.MeshPhongMaterial({
-          color: GRAY_BASE.clone(), shininess: 60, specular: 0x555555,
-          emissive: new THREE.Color(0x000000), flatShading: true,
+        const material = new THREE.MeshPhongMaterial({
+          color: GRAY_BASE.clone(), shininess: 60, specular: 0x555555, flatShading: true,
         });
 
         const R = 0.16;
-        const center = new THREE.Vector2(0, 0.52);
         const points = [];
         for (let a = 170; a >= -60; a -= 23) {
           const rad = THREE.MathUtils.degToRad(a);
-          points.push(new THREE.Vector3(
-            center.x + Math.cos(rad) * 0.5, center.y + Math.sin(rad) * 0.5, 0
-          ));
+          points.push(new THREE.Vector3(Math.cos(rad) * 0.5, 0.52 + Math.sin(rad) * 0.5, 0));
         }
         points.push(new THREE.Vector3(0.04, -0.12, 0), new THREE.Vector3(0, -0.34, 0));
-        const curve = new THREE.CatmullRomCurve3(points);
 
-        this.group = new THREE.Group();
-        this.group.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 30, R, 6), this.material));
+        const group = new THREE.Group();
+        group.add(new THREE.Mesh(
+          new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 30, R, 6), material
+        ));
         for (const p of [points[0], points[points.length - 1]]) {
-          const cap = new THREE.Mesh(new THREE.SphereGeometry(R, 6, 4), this.material);
+          const cap = new THREE.Mesh(new THREE.SphereGeometry(R, 6, 4), material);
           cap.position.copy(p);
-          this.group.add(cap);
+          group.add(cap);
         }
-        const dot = new THREE.Mesh(new THREE.IcosahedronGeometry(0.21, 0), this.material);
+        const dot = new THREE.Mesh(new THREE.IcosahedronGeometry(0.21, 0), material);
         dot.position.set(0, -0.82, 0);
-        this.group.add(dot);
-
-        this.group.rotation.set(0.1, -0.42, 0);
-        this.group.position.y = -MODEL_BASE_OFFSET;
-        this.scene.add(this.group);
-
-        this.shadowMgr = new ShadowManager(
-          container, () => this.group, this.camera
-        );
-
-        this.animate = this.animate.bind(this);
-        this.renderer.setAnimationLoop(this.animate);
+        group.add(dot);
+        group.rotation.set(0.1, -0.42, 0);
+        this.setModel(group);
       }
 
-      animate() {
-        const dt = Math.min(this.clock.getDelta(), 0.05);
-        this.applyColor(dt, this.material);
-        this.applyLevit(this.group, dt);
-        this.shadowMgr.update();
-        this.renderer.render(this.scene, this.camera);
-      }
-    }
-
-    /* ============================================================
-       VISOR DE LIBRO
-       ============================================================ */
-    class BookViewer extends BaseViewer {
-      constructor(container, colorHex, index) {
-        super(container, colorHex, index);
-
-        const { renderer, scene, camera } = setupBase(
-          container, [0, 1.9, 8.0], 32, [0, -0.5, 0]
-        );
-        this.renderer = renderer; this.scene = scene; this.camera = camera;
-
-        const W = 1.15, H = 1.6, T_COVER = 0.055;
-        const PAGES_W = 1.10, PAGES_H = 1.53, PAGES_T = 0.18;
-
-        this.bookGroup = new THREE.Group();
-        this.bookGroup.scale.setScalar(1.35);
-        this.bookGroup.position.y = -MODEL_BASE_OFFSET;
-        this.scene.add(this.bookGroup);
-
-        this.baseRotX = 0.08;
-        this.baseRotZ = -0.18;
-        this.baseRotY = -0.55;
-        this.openRotX = -1.15;
-        this.openRotZ = 0.0;
-        this.openRotY = 0.0;
-        this.rotY = this.baseRotY;
-        this.bookGroup.rotation.set(this.baseRotX, this.rotY, this.baseRotZ);
-
-        this.coverMaterial = new THREE.MeshPhongMaterial({
-          color: GRAY_BASE.clone(), shininess: 45, specular: 0x333333,
-        });
-        const pagesMaterial = new THREE.MeshPhongMaterial({ color: 0xf4ebdd, shininess: 6 });
-        const pagesEdgeMaterial = new THREE.MeshPhongMaterial({ color: 0xe6dcc7, shininess: 4 });
-
-        const spine = new THREE.Mesh(
-          new THREE.BoxGeometry(T_COVER, H, PAGES_T + 2 * T_COVER), this.coverMaterial
-        );
-        spine.position.set(-W / 2 + T_COVER / 2, 0, 0);
-        this.bookGroup.add(spine);
-
-        const backCover = new THREE.Mesh(
-          new THREE.BoxGeometry(W, H, T_COVER), this.coverMaterial
-        );
-        backCover.position.set(0, 0, -(PAGES_T / 2 + T_COVER / 2));
-        this.bookGroup.add(backCover);
-
-        const pages = new THREE.Mesh(
-          new THREE.BoxGeometry(PAGES_W, PAGES_H, PAGES_T),
-          [pagesEdgeMaterial, pagesMaterial, pagesMaterial,
-           pagesMaterial, pagesMaterial, pagesMaterial]
-        );
-        this.bookGroup.add(pages);
-
-        this.frontPivot = new THREE.Group();
-        this.frontPivot.position.set(-W / 2, 0, PAGES_T / 2 + T_COVER / 2);
-        this.bookGroup.add(this.frontPivot);
-
-        const frontCover = new THREE.Mesh(
-          new THREE.BoxGeometry(W, H, T_COVER), this.coverMaterial
-        );
-        frontCover.position.set(W / 2, 0, 0);
-        this.frontPivot.add(frontCover);
-
-        this.openProgress = 0;
-
-        this.shadowMgr = new ShadowManager(
-          container, () => this.bookGroup, this.camera
-        );
-
-        this.animate = this.animate.bind(this);
-        this.renderer.setAnimationLoop(this.animate);
-      }
-
-      animate() {
-        const dt = Math.min(this.clock.getDelta(), 0.05);
-        const awake = this.isHovered || this.isSelected;
-        const active = this.isSelected;
-
-        this.applyColor(dt, this.coverMaterial, 0.28, 0.15);
-
-        let targetRotY;
-        if (active) targetRotY = this.openRotY;
-        else if (awake) { this.rotY += dt * 1.1; targetRotY = this.rotY; }
-        else targetRotY = this.baseRotY;
-
-        let diffY = targetRotY - this.bookGroup.rotation.y;
-        diffY = Math.atan2(Math.sin(diffY), Math.cos(diffY));
-        this.bookGroup.rotation.y += diffY * Math.min(1, dt * 6);
-        if (!active) this.rotY = this.bookGroup.rotation.y;
-
-        const targetRotX = active ? this.openRotX : this.baseRotX;
-        this.bookGroup.rotation.x += (targetRotX - this.bookGroup.rotation.x) * Math.min(1, dt * 5);
-
-        const targetRotZ = active ? this.openRotZ : this.baseRotZ;
-        this.bookGroup.rotation.z += (targetRotZ - this.bookGroup.rotation.z) * Math.min(1, dt * 5);
-
-        const targetOpen = active ? 1 : 0;
-        this.openProgress += (targetOpen - this.openProgress) * Math.min(1, dt * 4);
-        this.frontPivot.rotation.y = -this.openProgress * (Math.PI * 0.72);
-
-        this.applyLevit(this.bookGroup, dt);
-        this.shadowMgr.update();
-
-        this.renderer.render(this.scene, this.camera);
-      }
-    }
-
-    /* ============================================================
-       VISOR DE COFRE
-       ============================================================ */
-    class ChestViewer extends BaseViewer {
-      constructor(container, colorHex, index) {
-        super(container, colorHex, index);
-        this.woodColor = new THREE.Color(0x7a4a2b);
-        this.bronzeColor = GOLD.clone();
-        this.currentWood = GRAY_BASE.clone();
-        this.currentMetal = GRAY_BASE.clone();
-
-        const { renderer, scene, camera } = setupBase(
-          container, [0, 1.1, 4.6], 42, [0, -0.5, 0]
-        );
-        this.renderer = renderer; this.scene = scene; this.camera = camera;
-
-        const W = 1.55, H_BASE = 0.72, D = 0.95, T = 0.06, R = D / 2;
-
-        this.chestGroup = new THREE.Group();
-        this.chestGroup.scale.setScalar(1.05);
-        this.chestGroup.position.y = -MODEL_BASE_OFFSET;
-        this.scene.add(this.chestGroup);
-
-        this.baseRotX = 0.15;
-        this.baseRotZ = 0.0;
-        this.baseRotY = -0.42;
-        this.rotY = this.baseRotY;
-        this.chestGroup.rotation.set(this.baseRotX, this.rotY, this.baseRotZ);
-
-        this.woodMaterial = new THREE.MeshPhongMaterial({
-          color: GRAY_BASE.clone(), shininess: 18, specular: 0x1a1206,
-        });
-        this.metalMaterial = new THREE.MeshPhongMaterial({
-          color: GRAY_BASE.clone(), shininess: 90, specular: 0xc9b98a,
-        });
-        this.interiorMaterial = new THREE.MeshPhongMaterial({
-          color: 0x1a0d04, shininess: 10, emissive: 0x2a1505,
-        });
-        this.treasureMaterial = new THREE.MeshPhongMaterial({
-          color: 0xd4af37, shininess: 90, specular: 0xffe680, emissive: 0x5a4000,
-        });
-
-        const bottom = new THREE.Mesh(new THREE.BoxGeometry(W, T, D), this.woodMaterial);
-        bottom.position.set(0, -H_BASE / 2 + T / 2, 0);
-        this.chestGroup.add(bottom);
-
-        for (const side of [-1, 1]) {
-          const wall = new THREE.Mesh(new THREE.BoxGeometry(T, H_BASE, D), this.woodMaterial);
-          wall.position.set(side * (W / 2 - T / 2), 0, 0);
-          this.chestGroup.add(wall);
-        }
-
-        const frontZ = D / 2 - T / 2;
-        const N_PLANKS = 6;
-        const plankW = (W - 2 * T) / N_PLANKS;
-        for (let i = 0; i < N_PLANKS; i++) {
-          const x = -W / 2 + T + plankW * (i + 0.5);
-          const plank = new THREE.Mesh(
-            new THREE.BoxGeometry(plankW * 0.92, H_BASE, T), this.woodMaterial
-          );
-          plank.position.set(x, 0, frontZ);
-          this.chestGroup.add(plank);
-        }
-        const backWall = new THREE.Mesh(
-          new THREE.BoxGeometry(W, H_BASE, T), this.woodMaterial
-        );
-        backWall.position.set(0, 0, -D / 2 + T / 2);
-        this.chestGroup.add(backWall);
-
-        const innerFloor = new THREE.Mesh(
-          new THREE.BoxGeometry(W - 2 * T, T * 0.4, D - 2 * T), this.interiorMaterial
-        );
-        innerFloor.position.set(0, -H_BASE / 2 + T + T * 0.2, 0);
-        this.chestGroup.add(innerFloor);
-
-        this.treasure = new THREE.Mesh(
-          new THREE.SphereGeometry(R * 0.45, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2),
-          this.treasureMaterial
-        );
-        this.treasure.position.set(0, -H_BASE / 2 + T * 1.5, 0);
-        this.treasure.scale.y = 0.7;
-        this.chestGroup.add(this.treasure);
-
-        for (const x of [-W / 2 + T * 0.6, W / 2 - T * 0.6]) {
-          const corner = new THREE.Mesh(
-            new THREE.BoxGeometry(T * 1.3, H_BASE, T * 1.4), this.metalMaterial
-          );
-          corner.position.set(x, 0, frontZ + T * 0.15);
-          this.chestGroup.add(corner);
-        }
-
-        const lock = new THREE.Mesh(
-          new THREE.BoxGeometry(0.28, 0.30, T * 1.4), this.metalMaterial
-        );
-        lock.position.set(0, H_BASE * 0.28, frontZ + T * 0.5);
-        this.chestGroup.add(lock);
-
-        const lockEye = new THREE.Mesh(
-          new THREE.BoxGeometry(0.07, 0.10, T * 0.6),
-          new THREE.MeshPhongMaterial({ color: 0x000000 })
-        );
-        lockEye.position.set(0, H_BASE * 0.28 - 0.02, frontZ + T * 0.9);
-        this.chestGroup.add(lockEye);
-
-        this.lidPivot = new THREE.Group();
-        this.lidPivot.position.set(0, H_BASE / 2, -D / 2);
-        this.chestGroup.add(this.lidPivot);
-
-        const lidShape = new THREE.Shape();
-        lidShape.moveTo(0, 0);
-        lidShape.lineTo(D, 0);
-        lidShape.absarc(D / 2, 0, R, Math.PI, 0, true);
-
-        const lidGeo = new THREE.ExtrudeGeometry(lidShape, {
-          depth: W, bevelEnabled: false, curveSegments: 28,
-        });
-        lidGeo.rotateY(-Math.PI / 2);
-        lidGeo.translate(W / 2, 0, 0);
-        this.lidPivot.add(new THREE.Mesh(lidGeo, this.woodMaterial));
-
-        const strapBase = new THREE.Shape();
-        strapBase.moveTo(-0.02, -0.01);
-        strapBase.lineTo(D + 0.02, -0.01);
-        strapBase.absarc(D / 2, 0, R + 0.02, Math.PI, 0, true);
-
-        for (const xFrac of [-0.30, 0.30]) {
-          const strapGeo = new THREE.ExtrudeGeometry(strapBase, {
-            depth: 0.08, bevelEnabled: false, curveSegments: 28,
-          });
-          strapGeo.rotateY(-Math.PI / 2);
-          strapGeo.translate(xFrac * W + 0.04, 0, 0);
-          this.lidPivot.add(new THREE.Mesh(strapGeo, this.metalMaterial));
-        }
-
-        this.openProgress = 0;
-
-        this.shadowMgr = new ShadowManager(
-          container, () => this.chestGroup, this.camera
-        );
-
-        this.animate = this.animate.bind(this);
-        this.renderer.setAnimationLoop(this.animate);
-      }
-
-      animate() {
-        const dt = Math.min(this.clock.getDelta(), 0.05);
-        const awake = this.isHovered || this.isSelected;
-        const active = this.isSelected;
-
-        const woodTarget = this.isUnlocked ? this.woodColor : GRAY_BASE;
-        this.currentWood.lerp(woodTarget, Math.min(1, dt * 6));
-        this.woodMaterial.color.copy(this.currentWood);
-
-        const metalTarget = this.isUnlocked ? this.bronzeColor : GRAY_BASE;
-        this.currentMetal.lerp(metalTarget, Math.min(1, dt * 6));
-        this.metalMaterial.color.copy(this.currentMetal);
-
-        let targetRotY;
-        if (active) targetRotY = 0;
-        else if (awake) { this.rotY += dt * 1.1; targetRotY = this.rotY; }
-        else targetRotY = this.baseRotY;
-
-        let diffY = targetRotY - this.chestGroup.rotation.y;
-        diffY = Math.atan2(Math.sin(diffY), Math.cos(diffY));
-        this.chestGroup.rotation.y += diffY * Math.min(1, dt * 6);
-        if (!active) this.rotY = this.chestGroup.rotation.y;
-
-        const targetRotX = active ? 0.10 : this.baseRotX;
-        this.chestGroup.rotation.x += (targetRotX - this.chestGroup.rotation.x) * Math.min(1, dt * 5);
-
-        const targetRotZ = active ? 0.0 : this.baseRotZ;
-        this.chestGroup.rotation.z += (targetRotZ - this.chestGroup.rotation.z) * Math.min(1, dt * 5);
-
-        const targetOpen = active ? 1 : 0;
-        this.openProgress += (targetOpen - this.openProgress) * Math.min(1, dt * 4);
-        this.lidPivot.rotation.x = -this.openProgress * (Math.PI * 0.55);
-
-        this.applyLevit(this.chestGroup, dt);
-        this.shadowMgr.update();
-
-        this.renderer.render(this.scene, this.camera);
+      update(dt, time, isOddFrame) {
+        if (isOddFrame) return;     // solo flota: basta con un cuadro de cada dos
+        this.applyLevit(time);
+        this.render();
       }
     }
 
@@ -1723,8 +1187,6 @@
     const particlesCtx = particlesCanvas.getContext('2d');
     const spriteCache = {};
     let burstItems = [];
-    let burstRunning = false;
-    let burstLastTime = 0;
 
     // Brillos dibujados una sola vez por color: después solo se copian, muy rápido en el teléfono
     function getSprite(kind, color) {
@@ -1775,9 +1237,7 @@
       }
     }
 
-    function stepBurst(now) {
-      const dt = Math.min((now - burstLastTime) / 1000, 0.1);
-      burstLastTime = now;
+    function stepBurst(dt) {
       const ctx = particlesCtx;
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
       ctx.globalCompositeOperation = 'lighter';
@@ -1834,11 +1294,9 @@
       });
 
       ctx.globalAlpha = 1;
-      if (burstItems.length) {
-        requestAnimationFrame(stepBurst);
-      } else {
+      if (!burstItems.length) {
         ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-        burstRunning = false;
+        particlesCanvas.hidden = true;    // sin explosión, el lienzo no ocupa memoria gráfica
       }
     }
 
@@ -1889,42 +1347,107 @@
       launch('star',   30, 180,  640, 2.6,  90, 0.9,  1.7, 14, 34, 'star', true);
       launch('glitter', 60,  40,  340, 1.8,  55, 1.3,  2.5,  4, 11, 'glow', true);
 
-      if (!burstRunning) {
-        burstRunning = true;
-        burstLastTime = performance.now();
-        requestAnimationFrame(stepBurst);
-      }
+      particlesCanvas.hidden = false;
     }
+
+    /* ============================================================
+       FONDO: estrellas y constelaciones
+       ============================================================ */
+    // Coordenadas en un lienzo de 1200 × 800 que siempre cubre la pantalla
+    const SKY_LAYERS = [
+      { className:'sky-far', depth:0.35, color:'#C7B3E5',
+        stars:[[80,200,0.9],[320,60,1],[700,120,0.8],[1080,180,1],[150,560,0.9],[520,680,1.1],[900,620,0.9],[1120,700,1],[420,380,0.8],[820,420,0.9]],
+        line:{ width:0.35, opacity:0.15 },
+        lines:['80,200 320,60 700,120', '520,680 900,620 1080,180'],
+        sparkles:[], sparkleOpacity:0 },
+      { className:'sky-mid', depth:0.7, color:'#C7B3E5',
+        stars:[[220,140,1.3],[600,80,1.2],[980,220,1.4],[120,420,1.3],[760,540,1.2],[1050,640,1.3],[340,720,1.1]],
+        line:{ width:0.5, opacity:0.2 },
+        lines:['220,140 600,80 980,220', '120,420 220,140', '340,720 760,540 1050,640'],
+        sparkles:[[600,311.5,23],[980,469,18]], sparkleOpacity:0.4 },
+      { className:'sky-near', depth:1.1, color:'#F4EBDD',
+        stars:[[180,300,1.6],[860,180,1.7],[480,520,1.5],[1080,420,1.6],[260,720,1.5]],
+        line:{ width:0.7, opacity:0.28 },
+        lines:['180,300 480,520 860,180', '1080,420 860,180'],
+        sparkles:[[700,236.5,33]], sparkleOpacity:0.6 },
+    ];
+
+    function placeStar(art, x, y, sizeInLienzo, className, background) {
+      const star = document.createElement('div');
+      star.className = className;
+      star.style.left = `${x / 12}%`;
+      star.style.top = `${y / 8}%`;
+      star.style.width = star.style.height = `calc(var(--sky-art-w) * ${sizeInLienzo / 1200})`;
+      star.style.background = background;
+      art.appendChild(star);
+      return star;
+    }
+
+    function buildSky() {
+      const sky = document.getElementById('sky');
+      SKY_LAYERS.forEach(data => {
+        const layer = document.createElement('div');
+        layer.className = `sky-layer ${data.className}`;
+        layer.dataset.depth = data.depth;
+        layer.innerHTML = `
+          <div class="sky-art">
+            <svg viewBox="0 0 1200 800" stroke="#D7B878" stroke-width="${data.line.width}" fill="none" opacity="${data.line.opacity}">
+              ${data.lines.map(points => `<polyline points="${points}"/>`).join('')}
+            </svg>
+          </div>`;
+        const art = layer.firstElementChild;
+
+        // Cada estrella es una capa propia: parpadea sin repintar el fondo completo
+        data.stars.forEach(([x, y, r], i) => {
+          const star = placeStar(art, x, y, r * 2, 'star star-twinkle', data.color);
+          const n = i + 1;
+          const [duration, delay] = n % 5 === 0 ? [13, 6] : n % 3 === 0 ? [11, 4] : n % 2 === 0 ? [9, 2] : [7, 0];
+          star.style.animationDuration = `${duration}s`;
+          star.style.animationDelay = `-${delay}s`;
+        });
+        data.sparkles.forEach(([x, y, size]) => {
+          placeStar(art, x, y, size, 'star star-sparkle', '#D7B878').style.opacity = data.sparkleOpacity;
+        });
+        sky.appendChild(layer);
+      });
+    }
+    buildSky();
 
     /* ============================================================
        PARALLAX + CURSOR
        ============================================================ */
-    const skyLayers = Array.from(document.querySelectorAll('.sky-layer, .sky-halo'));
+    const PARALLAX_X = 70;      // px de la capa con profundidad 1
+    const PARALLAX_Y = 46;
+    const PARALLAX_EASE = 6;    // mayor = sigue más rápido
+    const CURSOR_EASE = 12;
+
+    const skyLayers = Array.from(document.querySelectorAll('.sky-layer, .sky-halo'))
+      .map(el => ({ el, depth: parseFloat(el.dataset.depth) }));
+    const skyStars = Array.from(document.querySelectorAll('.star'));
     const cursorGlow = document.getElementById('cursorGlow');
     const cursorDot = document.getElementById('cursorDot');
 
-    let mouseX = 0, mouseY = 0;          // -1..1 para parallax
-    let rawX = window.innerWidth / 2;    // px para cursor
-    let rawY = window.innerHeight / 2;
+    let parallaxX = 0, parallaxY = 0;    // -1..1: hacia dónde apunta el mouse o la inclinación
     let smoothX = 0, smoothY = 0;
     let parallaxBoost = 1;               // la inclinación mueve más el fondo que el mouse
+    let cursorX = 0, cursorY = 0;
+    let glowX = 0, glowY = 0;
     let cursorVisible = false;
-
-    function updateMouse(clientX, clientY) {
-      rawX = clientX;
-      rawY = clientY;
-      mouseX = (clientX / window.innerWidth) * 2 - 1;
-      mouseY = (clientY / window.innerHeight) * 2 - 1;
-      if (!cursorVisible) {
-        cursorVisible = true;
-        cursorGlow.classList.remove('hidden');
-        cursorDot.classList.remove('hidden');
-      }
-    }
 
     // Solo el mouse real: un toque en el teléfono no debe mover el fondo
     document.addEventListener('pointermove', (e) => {
-      if (e.pointerType !== 'touch') updateMouse(e.clientX, e.clientY);
+      if (e.pointerType === 'touch') return;
+      cursorX = e.clientX;
+      cursorY = e.clientY;
+      parallaxX = (e.clientX / window.innerWidth) * 2 - 1;
+      parallaxY = (e.clientY / window.innerHeight) * 2 - 1;
+      if (!cursorVisible) {
+        cursorVisible = true;
+        glowX = cursorX;
+        glowY = cursorY;
+        cursorGlow.classList.remove('hidden');
+        cursorDot.classList.remove('hidden');
+      }
     });
 
     document.addEventListener('mouseleave', () => {
@@ -1935,48 +1458,40 @@
 
     // Al pasar por una card, el halo cambia a "hot"
     document.addEventListener('mouseover', (e) => {
-      if (e.target.closest('.card')) cursorGlow.classList.add('hot');
-      else cursorGlow.classList.remove('hot');
+      cursorGlow.classList.toggle('hot', !!e.target.closest('.card'));
     });
 
     // Click: pulso del cursor + iluminar constelaciones cercanas
     document.addEventListener('mousedown', (e) => {
-      cursorGlow.classList.remove('pulse');
-      void cursorGlow.offsetWidth;
-      cursorGlow.classList.add('pulse');
+      if (cursorVisible && !reduceMotion) {
+        cursorGlow.animate([{ scale: 1 }, { scale: 1.6 }, { scale: 1 }], { duration: 500, easing: 'ease-out' });
+      }
       lightStarsNear(e.clientX, e.clientY);
     });
 
-    /* Loop principal: parallax + cursor suave */
-    function tick() {
-      if (!reduceMotion) {
-        // Parallax con más fuerza
-        smoothX += (mouseX - smoothX) * 0.12;
-        smoothY += (mouseY - smoothY) * 0.12;
-        skyLayers.forEach(layer => {
-          const depth = parseFloat(layer.dataset.depth || '0.5');
-          const px = -smoothX * 70 * depth * parallaxBoost;   // 👈 más marcado (antes 22)
-          const py = -smoothY * 46 * depth * parallaxBoost;   // 👈 más marcado (antes 16)
-          layer.style.setProperty('--px', `${px}px`);
-          layer.style.setProperty('--py', `${py}px`);
-        });
-      }
-
-      // Cursor: lerp suave para que el halo "siga" con inercia
-      const glowRect = cursorGlow.getBoundingClientRect();
-      const curGlowX = glowRect.left + glowRect.width / 2;
-      const curGlowY = glowRect.top + glowRect.height / 2;
-      const followX = curGlowX + (rawX - curGlowX) * 0.18;
-      const followY = curGlowY + (rawY - curGlowY) * 0.18;
-
-      cursorGlow.style.left = followX + 'px';
-      cursorGlow.style.top  = followY + 'px';
-      cursorDot.style.left  = rawX + 'px';
-      cursorDot.style.top   = rawY + 'px';
-
-      requestAnimationFrame(tick);
+    function updateParallax(elapsed) {
+      if (reduceMotion) return;
+      const follow = 1 - Math.exp(-elapsed * PARALLAX_EASE);
+      const stepX = (parallaxX - smoothX) * follow;
+      const stepY = (parallaxY - smoothY) * follow;
+      if (Math.abs(stepX) + Math.abs(stepY) < 0.0001) return;   // sin cambios no se toca el fondo
+      smoothX += stepX;
+      smoothY += stepY;
+      const moveX = -smoothX * PARALLAX_X * parallaxBoost;
+      const moveY = -smoothY * PARALLAX_Y * parallaxBoost;
+      skyLayers.forEach(({ el, depth }) => {
+        el.style.transform = `translate3d(${moveX * depth}px, ${moveY * depth}px, 0)`;
+      });
     }
-    tick();
+
+    function updateCursor(elapsed) {
+      if (!cursorVisible) return;
+      const follow = 1 - Math.exp(-elapsed * CURSOR_EASE);
+      glowX += (cursorX - glowX) * follow;
+      glowY += (cursorY - glowY) * follow;
+      cursorGlow.style.transform = `translate3d(${glowX}px, ${glowY}px, 0)`;
+      cursorDot.style.transform = `translate3d(${cursorX}px, ${cursorY}px, 0)`;
+    }
 
     /* Parallax por inclinación del teléfono */
     const TILT_RANGE = 14;       // grados de inclinación para llegar al máximo
@@ -2003,8 +1518,8 @@
       lastTiltTime = now;
       tiltBase.x += (x - tiltBase.x) * follow;
       tiltBase.y += (y - tiltBase.y) * follow;
-      mouseX = clampUnit((x - tiltBase.x) / TILT_RANGE);
-      mouseY = clampUnit((y - tiltBase.y) / TILT_RANGE);
+      parallaxX = clampUnit((x - tiltBase.x) / TILT_RANGE);
+      parallaxY = clampUnit((y - tiltBase.y) / TILT_RANGE);
     }
 
     if (window.DeviceOrientationEvent && !reduceMotion) {
@@ -2022,23 +1537,15 @@
       }
     }
 
-    /* Iluminar estrellas cercanas al clic */
+    /* Iluminar estrellas cercanas al clic: cuanto más cerca, más dura */
     function lightStarsNear(clientX, clientY) {
       const radius = 220; // px
-      const stars = document.querySelectorAll('.star[data-clickable]');
-      stars.forEach(star => {
+      skyStars.forEach(star => {
         const rect = star.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-        const dx = cx - clientX;
-        const dy = cy - clientY;
-        const d = Math.sqrt(dx * dx + dy * dy);
+        const d = Math.hypot(rect.left + rect.width / 2 - clientX, rect.top + rect.height / 2 - clientY);
         if (d < radius) {
-          // Cuanto más cerca, más se ilumina
-          const intensity = 1 - d / radius;
           star.classList.add('lit');
-          // Ajuste proporcional con un pequeño delay para efecto cascada
-          setTimeout(() => star.classList.remove('lit'), 500 + intensity * 400);
+          setTimeout(() => star.classList.remove('lit'), 500 + (1 - d / radius) * 400);
         }
       });
     }
@@ -2049,7 +1556,6 @@
     const cardsGrid = document.getElementById('cardsGrid');
     const cardEntries = [];
     const viewport = window.visualViewport;
-    let globalMode = 0;
 
     const FALLBACK_GEM = `
       <svg class="model-fallback" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-linejoin="round" aria-hidden="true">
@@ -2064,16 +1570,11 @@
         <text x="20" y="31" text-anchor="middle" font-size="32" font-family="Cinzel, serif" fill="currentColor">?</text>
       </svg>`;
 
-    function eachViewer(entry, fn) {
-      [entry.mainViewer, entry.bookViewer, entry.chestViewer].forEach(v => { if (v) fn(v); });
-    }
-
     function buildCard(data, index) {
       const el = document.createElement('div');
       el.className = data.inactive ? 'card card-inactive' : 'card';
       el.dataset.id = data.id;
       el.style.setProperty('--glow-color', data.color);
-      el.style.setProperty('--glow-offset', '0px');
 
       el.innerHTML = `
         <div class="card-stage">
@@ -2081,9 +1582,7 @@
           <div class="card-glow"></div>
           <div class="card-flash"></div>
           <div class="stage-content">
-            <div class="slot slot-gem"></div>
-            <div class="slot slot-book hidden"></div>
-            <div class="slot slot-chest hidden"></div>
+            <div class="slot"></div>
           </div>
           ${data.inactive ? '' : `
           <div class="code-panel">
@@ -2100,16 +1599,13 @@
         <div class="card-label">${data.name}</div>
         ${data.inactive ? '' : `
         <div class="card-content">
-          <div class="card-content-inner">
-            <div class="card-title"></div>
-            <div class="card-desc"></div>
-            ${data.buttons && data.buttons.length ? `
-              <div class="card-actions">
-                ${data.buttons.map(b => b.href
-                  ? `<a class="card-btn" href="${b.href}" target="_blank" rel="noopener">${b.label}</a>`
-                  : `<button type="button" class="card-btn"${b.video ? ' data-video="true"' : ''}>${b.label}</button>`
-                ).join('')}
-              </div>` : ''}
+          <div class="card-title"></div>
+          <div class="card-desc"></div>
+          <div class="card-actions">
+            ${data.buttons.map(b => b.href
+              ? `<a class="card-btn" href="${b.href}" target="_blank" rel="noopener">${b.label}</a>`
+              : `<button type="button" class="card-btn"${b.video ? ' data-video="true"' : ''}>${b.label}</button>`
+            ).join('')}
           </div>
         </div>`}
       `;
@@ -2122,9 +1618,7 @@
       }
 
       const stageEl = el.querySelector('.card-stage');
-      const gemSlot = el.querySelector('.slot-gem');
-      const bookSlot = el.querySelector('.slot-book');
-      const chestSlot = el.querySelector('.slot-chest');
+      const slot = el.querySelector('.slot');
 
       el.querySelectorAll('.card-btn').forEach(b => {
         b.addEventListener('click', (e) => {
@@ -2134,13 +1628,13 @@
       });
 
       // Sin WebGL la página sigue funcionando, con un dibujo en lugar del modelo
-      let mainViewer = null;
+      let viewer = null;
       try {
-        mainViewer = data.inactive
-          ? new QuestionViewer(gemSlot, data.color, index)
-          : new GemViewer(gemSlot, data.color, data.shape, index);
+        viewer = data.inactive
+          ? new QuestionViewer(slot, index)
+          : new GemViewer(slot, data.color, index);
       } catch (err) {
-        gemSlot.innerHTML = data.inactive ? FALLBACK_QUESTION : FALLBACK_GEM;
+        slot.innerHTML = data.inactive ? FALLBACK_QUESTION : FALLBACK_GEM;
         stageEl.style.setProperty('--shadow-y', `${stageEl.clientHeight * 0.84}px`);
       }
 
@@ -2149,16 +1643,10 @@
       const codeMsg = el.querySelector('.code-msg');
 
       const entry = {
-        data, el, stageEl,
-        descEl: el.querySelector('.card-desc'),
-        titleEl: el.querySelector('.card-title'),
-        labelEl: el.querySelector('.card-label'),
-        mainViewer, bookViewer: null, chestViewer: null,
-        gemSlot, bookSlot, chestSlot,
+        data, el, stageEl, viewer,
         codePanel, codeBoxes, codeMsg,
         unlocked: false,
         expectingCode: false,
-        originalLabel: data.name,
       };
       cardEntries.push(entry);
 
@@ -2174,9 +1662,9 @@
         });
       });
 
-      if (!data.inactive) {
-        el.addEventListener('mouseenter', () => eachViewer(entry, v => v.setHovered(true)));
-        el.addEventListener('mouseleave', () => eachViewer(entry, v => v.setHovered(false)));
+      if (viewer) {
+        el.addEventListener('mouseenter', () => viewer.setHovered(true));
+        el.addEventListener('mouseleave', () => viewer.setHovered(false));
       }
 
       el.addEventListener('click', (e) => {
@@ -2184,13 +1672,11 @@
         if (carouselQuery.matches && entry !== centeredEntry) { scrollToCard(entry); return; }
         if (data.inactive) return;
         if (codePanel.contains(e.target)) return;
-        if (e.target.closest('.card-btn')) return;
         if (entry.expectingCode) return;
         if (!entry.unlocked) { openCodePanel(entry); return; }
         toggleSelect(entry);
       });
 
-      return entry;
     }
 
     function openCodePanel(entry) {
@@ -2252,7 +1738,7 @@
           const stillOpen = entry.expectingCode;  // pudo cerrarse al deslizar o tocar fuera
           closeCodePanel(entry);
           entry.unlocked = true;
-          eachViewer(entry, v => v.setUnlocked(true));
+          if (entry.viewer) entry.viewer.setUnlocked(true);
           if (stillOpen) toggleSelect(entry);
         });
       } else {
@@ -2279,7 +1765,7 @@
 
     function deselect(entry) {
       entry.el.classList.remove('selected');
-      eachViewer(entry, v => v.setSelected(false));
+      if (entry.viewer) entry.viewer.setSelected(false);
     }
 
     function toggleSelect(entry) {
@@ -2295,12 +1781,15 @@
       });
 
       entry.el.classList.add('selected');
-      eachViewer(entry, v => v.setSelected(true));
+      if (entry.viewer) entry.viewer.setSelected(true);
 
-      entry.el.classList.remove('flash');
-      void entry.el.offsetWidth;
-      entry.el.classList.add('flash');
-      setTimeout(() => entry.el.classList.remove('flash'), 950);
+      if (!reduceMotion) {
+        entry.el.querySelector('.card-flash').animate([
+          { transform: 'translate(-50%, -50%) scale(0.2)', opacity: 0 },
+          { opacity: 0.95, offset: 0.25 },
+          { transform: 'translate(-50%, -50%) scale(7)', opacity: 0 },
+        ], { duration: 900, easing: 'ease-out' });
+      }
 
       emitMagicParticles(entry.stageEl, entry.data.color);
     }
@@ -2337,7 +1826,7 @@
         centeredEntry.restoreOnReturn = centeredEntry.el.classList.contains('selected');
         deselect(centeredEntry);
         if (centeredEntry.expectingCode) closeCodePanel(centeredEntry);
-        eachViewer(centeredEntry, v => v.setHovered(false));
+        if (centeredEntry.viewer) centeredEntry.viewer.setHovered(false);
       }
       centeredEntry = nearest;
       cardEntries.forEach(e => e.el.classList.toggle('off-center', e !== nearest));
@@ -2346,7 +1835,7 @@
       if (nearest.restoreOnReturn) {
         nearest.restoreOnReturn = false;
         nearest.el.classList.add('selected');
-        eachViewer(nearest, v => v.setSelected(true, false));
+        if (nearest.viewer) nearest.viewer.setSelected(true, false);
       }
     }
 
@@ -2368,7 +1857,6 @@
     const videoTime = document.getElementById('videoTime');
     const videoPlayBtn = document.getElementById('videoPlay');
     const videoCloseBtn = document.getElementById('videoClose');
-    const socialLink = document.getElementById('socialLink');
     let videoOpener = null;
 
     const formatTime = (s) => {
@@ -2382,13 +1870,6 @@
       videoTime.textContent = `${formatTime(videoEl.currentTime)} / ${formatTime(videoEl.duration)}`;
     }
 
-    // Los modelos 3D no necesitan dibujarse detrás del video
-    function setViewersRunning(running) {
-      cardEntries.forEach(e => eachViewer(e, v => {
-        v.renderer.setAnimationLoop(running ? v.animate : null);
-      }));
-    }
-
     function openVideo(src, opener) {
       videoOpener = opener;
       videoMsg.hidden = true;
@@ -2398,7 +1879,6 @@
       videoModal.hidden = false;
       cardsGrid.inert = true;
       socialLink.inert = true;
-      setViewersRunning(false);
       videoCloseBtn.focus();
       videoEl.play().catch(() => {});     // si el navegador lo impide, queda el botón de reproducir
     }
@@ -2411,7 +1891,6 @@
       videoModal.hidden = true;
       cardsGrid.inert = false;
       socialLink.inert = false;
-      setViewersRunning(true);
       if (videoOpener) videoOpener.focus();
     }
 
@@ -2477,61 +1956,41 @@
     });
 
     /* ============================================================
-       CICLO DE MODELO
-       (el botón está oculto; quita `hidden` de .top-controls para volver a usarlo)
+       INICIO Y BUCLE ÚNICO DE ANIMACIÓN
        ============================================================ */
-    const cycleBtn = document.getElementById('cycleModelBtn');
-    const labelsByMode = ['Cambiar a libros', 'Cambiar a cofres', 'Cambiar a gemas'];
-    cycleBtn.textContent = labelsByMode[0];
-
-    cycleBtn.addEventListener('click', () => {
-      globalMode = (globalMode + 1) % 3;
-      cardEntries.forEach(e => {
-        if (e.data.inactive) return;     // el signo ? no cambia de modelo
-        if (e.el.classList.contains('selected')) deselect(e);
-        e.gemSlot.classList.add('hidden');
-        e.bookSlot.classList.add('hidden');
-        e.chestSlot.classList.add('hidden');
-
-        const idx = cardEntries.indexOf(e) + 1;
-        if (globalMode === 0) {
-          e.gemSlot.classList.remove('hidden');
-          e.labelEl.textContent = e.originalLabel;
-        } else if (globalMode === 1) {
-          // Libro y cofre se crean solo si se piden, para no gastar WebGL en el teléfono
-          if (!e.bookViewer) {
-            e.bookViewer = new BookViewer(e.bookSlot, e.data.color, idx - 1);
-            e.bookViewer.setUnlocked(e.unlocked);
-          }
-          e.bookSlot.classList.remove('hidden');
-          e.labelEl.textContent = 'Libro ' + idx;
-        } else {
-          if (!e.chestViewer) {
-            e.chestViewer = new ChestViewer(e.chestSlot, e.data.color, idx - 1);
-            e.chestViewer.setUnlocked(e.unlocked);
-          }
-          e.chestSlot.classList.remove('hidden');
-          e.labelEl.textContent = 'Cofre ' + idx;
-        }
-      });
-      cycleBtn.textContent = labelsByMode[globalMode];
-    });
-
-    CARDS.forEach((c, i) => buildCard(c, i));
+    CARDS.forEach(buildCard);
     syncCarousel();
 
     window.addEventListener('resize', () => {
-      cardEntries.forEach(entry => {
-        const stage = entry.stageEl;
-        const w = stage.clientWidth;
-        const h = stage.clientHeight;
-        eachViewer(entry, v => {
-          v.renderer.setSize(w, h);
-          v.camera.aspect = w / h;
-          v.camera.updateProjectionMatrix();
-        });
+      cardEntries.forEach(({ viewer, stageEl }) => {
+        if (viewer) viewer.resize(stageEl.clientWidth, stageEl.clientHeight);
       });
     });
+
+    // Todo se actualiza aquí, una vez por cuadro. Solo se escribe `transform` en el
+    // fondo y el cursor, para no forzar recálculos de estilo ni de diseño.
+    let lastFrameTime = performance.now();
+    let frameCount = 0;
+
+    function frame(now) {
+      requestAnimationFrame(frame);
+      const elapsed = Math.max(0, (now - lastFrameTime) / 1000);
+      lastFrameTime = now;
+      if (!videoModal.hidden) return;   // nada necesita dibujarse detrás del video
+
+      frameCount++;
+      updateParallax(elapsed);
+      updateCursor(elapsed);
+
+      const dt = Math.min(elapsed, 0.05);
+      const isOddFrame = frameCount % 2 === 1;
+      cardEntries.forEach(({ viewer }) => {
+        if (viewer) viewer.update(dt, now * 0.001, isOddFrame);
+      });
+
+      if (burstItems.length) stepBurst(Math.min(elapsed, 0.1));
+    }
+    requestAnimationFrame(frame);
   </script>
 </body>
 </html>
